@@ -63,12 +63,13 @@ static const char* fragment_shader_text = "#version 330\n"
                                           "    fragment = vec4(color, 1.0);\n"
                                           "}\n";
 
-static void error_callback(int error, const char* description)
+static void error_callback(int /*error*/, const char* description)
 {
     fprintf(stderr, "Error: %s\n", description);
 }
 
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+static void key_callback(GLFWwindow* window, int key, int /* scancode */, int action,
+                         int /* mods */)
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -124,11 +125,11 @@ int main(void)
     GLuint vertex_array;
     glGenVertexArrays(1, &vertex_array);
     glBindVertexArray(vertex_array);
-    glEnableVertexAttribArray(vpos_location);
-    glVertexAttribPointer(vpos_location, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+    glEnableVertexAttribArray(static_cast<GLuint>(vpos_location));
+    glVertexAttribPointer(static_cast<GLuint>(vpos_location), 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
                           (void*)offsetof(Vertex, pos));
-    glEnableVertexAttribArray(vcol_location);
-    glVertexAttribPointer(vcol_location, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+    glEnableVertexAttribArray(static_cast<GLuint>(vcol_location));
+    glVertexAttribPointer(static_cast<GLuint>(vcol_location), 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
                           (void*)offsetof(Vertex, col));
 
     while (!glfwWindowShouldClose(window)) {
