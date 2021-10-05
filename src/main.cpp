@@ -28,15 +28,16 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
-#include "linmath.h"
+#include <glm/ext.hpp>
+#include <glm/glm.hpp>
 
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 typedef struct Vertex {
-    vec2 pos;
-    vec3 col;
+    glm::vec2 pos;
+    glm::vec3 col;
 } Vertex;
 
 static const Vertex vertices[3] = {{{-0.6f, -0.4f}, {1.f, 0.f, 0.f}},
@@ -138,14 +139,13 @@ int main(void)
         glViewport(0, 0, width, height);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        mat4x4 m, p, mvp;
-        mat4x4_identity(m);
-        mat4x4_rotate_Z(m, m, (float)glfwGetTime());
-        mat4x4_ortho(p, -ratio, ratio, -1.f, 1.f, 1.f, -1.f);
-        mat4x4_mul(mvp, p, m);
+        glm::mat4 model{1.0f};
+        model = glm::rotate(model, static_cast<float>(glfwGetTime()), glm::vec3(0, 0, 1.0f));
+        glm::mat4 projection = glm::ortho(-ratio, ratio, -1.0f, 1.0f, 1.0f, -1.0f);
+        glm::mat4 mvp = projection * model;
 
         glUseProgram(program);
-        glUniformMatrix4fv(mvp_location, 1, GL_FALSE, (const GLfloat*)&mvp);
+        glUniformMatrix4fv(mvp_location, 1, GL_FALSE, glm::value_ptr(mvp));
         glBindVertexArray(vertex_array);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
