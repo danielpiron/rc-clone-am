@@ -31,6 +31,10 @@
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
 
+#include <fstream>
+#include <iostream>
+#include <string>
+
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,24 +48,12 @@ static const Vertex vertices[3] = {{{-0.6f, -0.4f}, {1.f, 0.f, 0.f}},
                                    {{0.6f, -0.4f}, {0.f, 1.f, 0.f}},
                                    {{0.f, 0.6f}, {0.f, 0.f, 1.f}}};
 
-static const char* vertex_shader_text = "#version 330\n"
-                                        "uniform mat4 MVP;\n"
-                                        "in vec3 vCol;\n"
-                                        "in vec2 vPos;\n"
-                                        "out vec3 color;\n"
-                                        "void main()\n"
-                                        "{\n"
-                                        "    gl_Position = MVP * vec4(vPos, 0.0, 1.0);\n"
-                                        "    color = vCol;\n"
-                                        "}\n";
-
-static const char* fragment_shader_text = "#version 330\n"
-                                          "in vec3 color;\n"
-                                          "out vec4 fragment;\n"
-                                          "void main()\n"
-                                          "{\n"
-                                          "    fragment = vec4(color, 1.0);\n"
-                                          "}\n";
+static std::string load_text_from(const char* filename)
+{
+    std::ifstream t(filename);
+    std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
+    return str;
+}
 
 static void error_callback(int /*error*/, const char* description)
 {
@@ -106,10 +98,18 @@ int main(void)
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     const GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+
+    const auto vertex_shader_string = load_text_from("vertex.glsl");
+    const char* vertex_shader_text = vertex_shader_string.c_str();
+
     glShaderSource(vertex_shader, 1, &vertex_shader_text, NULL);
     glCompileShader(vertex_shader);
 
     const GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+
+    const auto fragment_shader_string = load_text_from("fragment.glsl");
+    const char* fragment_shader_text = fragment_shader_string.c_str();
+
     glShaderSource(fragment_shader, 1, &fragment_shader_text, NULL);
     glCompileShader(fragment_shader);
 

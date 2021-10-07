@@ -36,3 +36,6 @@ target_include_directories(gl_again PRIVATE "${PROJECT_BINARY_DIR}" ${CMAKE_CURR
 target_include_directories(gl_again SYSTEM PUBLIC "${PROJECT_BINARY_DIR}" ${CMAKE_CURRENT_SOURCE_DIR}/deps/glfw/include)
 target_include_directories(gl_again SYSTEM PUBLIC "${PROJECT_BINARY_DIR}" ${CMAKE_CURRENT_SOURCE_DIR}/deps/glad/include)
 target_include_directories(gl_again SYSTEM PUBLIC "${PROJECT_BINARY_DIR}" ${CMAKE_CURRENT_SOURCE_DIR}/deps/glm)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/fragment.glsl fragment.glsl COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/vertex.glsl vertex.glsl COPYONLY)
