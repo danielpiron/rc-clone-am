@@ -11,9 +11,6 @@ struct VertexNormal {
     float x, y, z;
 };
 
-struct TextureCoordinates {
-    float u, v;
-}
 */
 
 struct ObjFile {
@@ -30,8 +27,17 @@ struct ObjFile {
         }
     };
 
+    struct TextureCoordinates {
+        float u, v;
+        bool operator==(const TextureCoordinates& other) const
+        {
+            return u == other.u && v == other.v;
+        }
+    };
+
     struct Object {
         std::vector<Vertex> vertices;
+        std::vector<TextureCoordinates> tex_coords;
     };
 
     static LinePartition partition_line(const std::string& line)
@@ -74,6 +80,19 @@ struct ObjFile {
         return {x, y, z, w};
     }
 
+    static TextureCoordinates parse_texture_coordinates(const std::string& s)
+    {
+        std::stringstream ss(s);
+
+        float u = 0;
+        float v = 0;
+
+        ss >> u;
+        ss >> v;
+
+        return {u, v};
+    }
+
     const Object& operator[](const std::string& s) const { return _objects.at(s); }
 
     void process_line(const std::string& s)
@@ -87,6 +106,9 @@ struct ObjFile {
             _objects[_current_object];
         } else if (line.command == "v") {
             _objects[_current_object].vertices.push_back(parse_vertex(line.parameters));
+        } else if (line.command == "vt") {
+            _objects[_current_object].tex_coords.push_back(
+                parse_texture_coordinates(line.parameters));
         }
     }
 
@@ -168,4 +190,20 @@ TEST(objFileLoader, CanReadVectors)
     ASSERT_EQ(obj.object_count(), 1);
     ASSERT_EQ(obj.objects()[0], "Cube");
     EXPECT_EQ(obj["Cube"].vertices, expected);
+}
+
+TEST(objFileLoader, CanReadTextureCoordinates)
+{
+    auto text = R"(o Cube
+                   v 0.0 0.25 0.5
+                   vt 0.0 1.0
+                   vt 0.5 -0.25
+                   )";
+    ObjFile obj;
+    obj.process_text(text);
+
+    std::vector<ObjFile::TextureCoordinates> expected{{0, 1.0f}, {0.5f, -0.25f}};
+    ASSERT_EQ(obj.object_count(), 1);
+    ASSERT_EQ(obj.objects()[0], "Cube");
+    EXPECT_EQ(obj["Cube"].tex_coords, expected);
 }
