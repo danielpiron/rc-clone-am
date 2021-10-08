@@ -113,6 +113,18 @@ struct ObjFile {
         return {x, y, z};
     }
 
+    static std::vector<std::string> split(const std::string& s, char delimiter)
+    {
+        std::stringstream ss(s);
+        std::string element;
+
+        std::vector<std::string> result;
+        while (std::getline(ss, element, delimiter)) {
+            result.emplace_back(element);
+        }
+        return result;
+    }
+
     const Object& operator[](const std::string& s) const { return _objects.at(s); }
 
     void process_line(const std::string& s)
@@ -135,12 +147,9 @@ struct ObjFile {
         }
     }
 
-    void process_text(const std::string& s)
+    void process_text(const std::string& text)
     {
-        std::stringstream ss(s);
-        std::string line;
-
-        while (std::getline(ss, line, '\n')) {
+        for (const auto& line : split(text, '\n')) {
             process_line(line);
         }
     }
