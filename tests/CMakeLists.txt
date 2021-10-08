@@ -22,6 +22,7 @@ target_link_libraries(
   gtest_main
 )
 target_compile_options(unit_tests PUBLIC ${CLANG_WARNINGS} -Werror -g -fsanitize=address)
+target_include_directories(unit_tests PRIVATE "${PROJECT_BINARY_DIR}" ${CMAKE_CURRENT_SOURCE_DIR}/../src)
 target_link_options(unit_tests PUBLIC -fsanitize=address)
 
 include(GoogleTest)
