@@ -7,10 +7,6 @@
 
 /*
 
-struct VertexNormal {
-    float x, y, z;
-};
-
 */
 
 struct ObjFile {
@@ -35,9 +31,18 @@ struct ObjFile {
         }
     };
 
+    struct VertexNormal {
+        float x, y, z;
+        bool operator==(const VertexNormal& other) const
+        {
+            return x == other.x && y == other.y && z == other.z;
+        }
+    };
+
     struct Object {
         std::vector<Vertex> vertices;
         std::vector<TextureCoordinates> tex_coords;
+        std::vector<VertexNormal> vertex_normals;
     };
 
     static LinePartition partition_line(const std::string& line)
@@ -93,6 +98,21 @@ struct ObjFile {
         return {u, v};
     }
 
+    static VertexNormal parse_vertex_normal(const std::string& s)
+    {
+        std::stringstream ss(s);
+
+        float x = 0;
+        float y = 0;
+        float z = 0;
+
+        ss >> x;
+        ss >> y;
+        ss >> z;
+
+        return {x, y, z};
+    }
+
     const Object& operator[](const std::string& s) const { return _objects.at(s); }
 
     void process_line(const std::string& s)
@@ -109,6 +129,9 @@ struct ObjFile {
         } else if (line.command == "vt") {
             _objects[_current_object].tex_coords.push_back(
                 parse_texture_coordinates(line.parameters));
+        } else if (line.command == "vn") {
+            _objects[_current_object].vertex_normals.push_back(
+                parse_vertex_normal(line.parameters));
         }
     }
 
@@ -206,4 +229,21 @@ TEST(objFileLoader, CanReadTextureCoordinates)
     ASSERT_EQ(obj.object_count(), 1);
     ASSERT_EQ(obj.objects()[0], "Cube");
     EXPECT_EQ(obj["Cube"].tex_coords, expected);
+}
+
+TEST(objFileLoader, CanReadVertexNormals)
+{
+    auto text = R"(o Cube
+                   v 0.0 0.25 0.5
+                   vt 0.0 1.0
+                   vn 0.25 0.5 1.0
+                   vn -0.25 -0.5 -1.0
+                   )";
+    ObjFile obj;
+    obj.process_text(text);
+
+    std::vector<ObjFile::VertexNormal> expected{{0.25f, 0.5f, 1.0f}, {-0.25f, -0.5f, -1.0f}};
+    ASSERT_EQ(obj.object_count(), 1);
+    ASSERT_EQ(obj.objects()[0], "Cube");
+    EXPECT_EQ(obj["Cube"].vertex_normals, expected);
 }
