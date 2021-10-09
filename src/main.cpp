@@ -36,6 +36,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <random>
 #include <string>
 
 #include <stddef.h>
@@ -156,8 +157,27 @@ int main(void)
     std::copy(truck_verts.begin(), truck_verts.end(), std::back_inserter(vertices));
     std::copy(tree_verts.begin(), tree_verts.end(), std::back_inserter(vertices));
 
-    Entity truck;
-    Entity tree;
+    constexpr auto tree_count = 40;
+    constexpr auto max_distance = 60.;
+    std::vector<Entity> entities(tree_count + 1);
+    Entity& truck = entities[0];
+
+    {
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::uniform_real_distribution<float> radian_dist(0, static_cast<float>(M_PI) * 2.f);
+        std::uniform_real_distribution<float> distance_dist(0, max_distance);
+
+        for (auto& entity : entities) {
+            if (&entity == &truck)
+                continue;
+            auto distance = distance_dist(mt);
+            auto theta = radian_dist(mt);
+            entity.position.x = sinf(theta) * distance;
+            entity.position.y = cosf(theta) * distance;
+            entity.angle = theta;
+        }
+    }
 
     GLuint vertex_buffer;
     glGenBuffers(1, &vertex_buffer);
@@ -218,24 +238,20 @@ int main(void)
 
         glm::mat4 projection = glm::perspective(glm::radians(40.f), ratio, 0.1f, 100.0f);
 
-        {
-            glm::mat4 model = model_matrix_from_entity(truck);
+        for (const auto& entity : entities) {
+            glm::mat4 model = model_matrix_from_entity(entity);
             glm::mat4 mvp = projection * view * model;
 
             glUseProgram(program);
             glUniformMatrix4fv(mvp_location, 1, GL_FALSE, glm::value_ptr(mvp));
             glBindVertexArray(vertex_array);
-            glDrawArrays(GL_TRIANGLES, 0, static_cast<int>(truck_verts.size()));
-        }
-        {
-            glm::mat4 model = model_matrix_from_entity(tree);
-            glm::mat4 mvp = projection * view * model;
 
-            glUseProgram(program);
-            glUniformMatrix4fv(mvp_location, 1, GL_FALSE, glm::value_ptr(mvp));
-            glBindVertexArray(vertex_array);
-            glDrawArrays(GL_TRIANGLES, static_cast<int>(truck_verts.size()),
-                         static_cast<int>(tree_verts.size()));
+            if (&entity == &truck) {
+                glDrawArrays(GL_TRIANGLES, 0, static_cast<int>(truck_verts.size()));
+            } else {
+                glDrawArrays(GL_TRIANGLES, static_cast<int>(truck_verts.size()),
+                             static_cast<int>(tree_verts.size()));
+            }
         }
 
         glfwSwapBuffers(window);
