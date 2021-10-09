@@ -24,6 +24,8 @@
 //========================================================================
 //! [code]
 
+#include "load_obj.h"
+
 #include <glad/glad.h>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -43,9 +45,6 @@ typedef struct Vertex {
     glm::vec4 pos;
 } Vertex;
 
-static const Vertex vertices[3] = {
-    {{-0.6f, -0.4f, 0, 1.0f}}, {{0.6f, -0.4f, 0, 1.0f}}, {{0.f, 0.6f, 0, 1.0f}}};
-
 static std::string load_text_from(const char* filename)
 {
     std::ifstream t(filename);
@@ -63,6 +62,27 @@ static void key_callback(GLFWwindow* window, int key, int /* scancode */, int ac
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GLFW_TRUE);
+}
+
+static std::vector<Vertex> load_model(const char* filename)
+{
+    ObjFile obj;
+    obj.process_text(load_text_from(filename));
+
+    struct Collector : ObjFile::TriangleCollector {
+        std::vector<Vertex> vertices;
+
+        void handle_vertex(const ObjFile::Vertex& v, const ObjFile::TextureCoordinates&,
+                           const ObjFile::VertexNormal&) override
+        {
+            vertices.push_back({{v.x, v.y, v.z, v.w}});
+        }
+    };
+
+    Collector collector;
+    obj.produce_triangle_list("Cube", &collector);
+
+    return collector.vertices;
 }
 
 int main(void)
@@ -90,10 +110,13 @@ int main(void)
 
     // NOTE: OpenGL error checks have been omitted for brevity
 
+    auto vertices = load_model("rc-truck.obj");
+
     GLuint vertex_buffer;
     glGenBuffers(1, &vertex_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, static_cast<int>(sizeof(vertices[0]) * vertices.size()),
+                 &vertices[0], GL_STATIC_DRAW);
 
     const GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
 
@@ -142,7 +165,7 @@ int main(void)
         glUseProgram(program);
         glUniformMatrix4fv(mvp_location, 1, GL_FALSE, glm::value_ptr(mvp));
         glBindVertexArray(vertex_array);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<int>(vertices.size()));
 
         glfwSwapBuffers(window);
         glfwPollEvents();
