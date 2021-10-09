@@ -40,10 +40,11 @@
 #include <stdlib.h>
 
 typedef struct Vertex {
-    glm::vec2 pos;
+    glm::vec4 pos;
 } Vertex;
 
-static const Vertex vertices[3] = {{{-0.6f, -0.4f}}, {{0.6f, -0.4f}}, {{0.f, 0.6f}}};
+static const Vertex vertices[3] = {
+    {{-0.6f, -0.4f, 0, 1.0f}}, {{0.6f, -0.4f, 0, 1.0f}}, {{0.f, 0.6f, 0, 1.0f}}};
 
 static std::string load_text_from(const char* filename)
 {
@@ -122,7 +123,7 @@ int main(void)
     glGenVertexArrays(1, &vertex_array);
     glBindVertexArray(vertex_array);
     glEnableVertexAttribArray(static_cast<GLuint>(vpos_location));
-    glVertexAttribPointer(static_cast<GLuint>(vpos_location), 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+    glVertexAttribPointer(static_cast<GLuint>(vpos_location), 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
                           (void*)offsetof(Vertex, pos));
 
     while (!glfwWindowShouldClose(window)) {
