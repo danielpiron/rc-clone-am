@@ -163,11 +163,12 @@ int main(void)
         glEnable(GL_DEPTH_TEST);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glm::mat4 model{1.0f};
-        model = glm::translate(model, glm::vec3(0, 0, -10.0f));
-        model = glm::rotate(model, static_cast<float>(glfwGetTime()), glm::vec3(0, 1.0f, 0));
-        glm::mat4 projection = glm::perspective(glm::radians(60.f), ratio, 0.1f, 100.0f);
-        glm::mat4 mvp = projection * model;
+        glm::mat4 view{1.0f};
+        view = glm::translate(view, glm::vec3(0, 0, -20.0f));
+        view = glm::rotate(view, glm::radians(35.264f), glm::vec3(1.0f, 0, 0));
+        view = glm::rotate(view, glm::radians(45.0f), glm::vec3(0, 1.0f, 0));
+        glm::mat4 projection = glm::perspective(glm::radians(40.f), ratio, 0.1f, 100.0f);
+        glm::mat4 mvp = projection * view;
 
         glUseProgram(program);
         glUniformMatrix4fv(mvp_location, 1, GL_FALSE, glm::value_ptr(mvp));
