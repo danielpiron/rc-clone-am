@@ -210,9 +210,11 @@ int main(void)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glm::mat4 view{1.0f};
-        view = glm::translate(view, glm::vec3(0, 0, -20.0f));
+        view = glm::translate(view, glm::vec3(0, 0, -30.0f));
         view = glm::rotate(view, glm::radians(35.264f), glm::vec3(1.0f, 0, 0));
         view = glm::rotate(view, glm::radians(45.0f), glm::vec3(0, 1.0f, 0));
+
+        view = glm::translate(view, glm::vec3(-truck.position.x, 0, -truck.position.y));
 
         glm::mat4 projection = glm::perspective(glm::radians(40.f), ratio, 0.1f, 100.0f);
 
