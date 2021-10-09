@@ -41,12 +41,9 @@
 
 typedef struct Vertex {
     glm::vec2 pos;
-    glm::vec3 col;
 } Vertex;
 
-static const Vertex vertices[3] = {{{-0.6f, -0.4f}, {1.f, 0.f, 0.f}},
-                                   {{0.6f, -0.4f}, {0.f, 1.f, 0.f}},
-                                   {{0.f, 0.6f}, {0.f, 0.f, 1.f}}};
+static const Vertex vertices[3] = {{{-0.6f, -0.4f}}, {{0.6f, -0.4f}}, {{0.f, 0.6f}}};
 
 static std::string load_text_from(const char* filename)
 {
@@ -120,7 +117,6 @@ int main(void)
 
     const GLint mvp_location = glGetUniformLocation(program, "MVP");
     const GLint vpos_location = glGetAttribLocation(program, "vPos");
-    const GLint vcol_location = glGetAttribLocation(program, "vCol");
 
     GLuint vertex_array;
     glGenVertexArrays(1, &vertex_array);
@@ -128,9 +124,6 @@ int main(void)
     glEnableVertexAttribArray(static_cast<GLuint>(vpos_location));
     glVertexAttribPointer(static_cast<GLuint>(vpos_location), 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
                           (void*)offsetof(Vertex, pos));
-    glEnableVertexAttribArray(static_cast<GLuint>(vcol_location));
-    glVertexAttribPointer(static_cast<GLuint>(vcol_location), 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                          (void*)offsetof(Vertex, col));
 
     while (!glfwWindowShouldClose(window)) {
         int width, height;
