@@ -41,9 +41,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef struct Vertex {
+struct Vertex {
     glm::vec4 pos;
-} Vertex;
+    glm::vec3 norm;
+};
 
 static std::string load_text_from(const char* filename)
 {
@@ -73,9 +74,9 @@ static std::vector<Vertex> load_model(const char* filename)
         std::vector<Vertex> vertices;
 
         void handle_vertex(const ObjFile::Vertex& v, const ObjFile::TextureCoordinates&,
-                           const ObjFile::VertexNormal&) override
+                           const ObjFile::VertexNormal& n) override
         {
-            vertices.push_back({{v.x, v.y, v.z, v.w}});
+            vertices.push_back({{v.x, v.y, v.z, v.w}, {n.x, n.y, n.z}});
         }
     };
 
@@ -141,13 +142,17 @@ int main(void)
 
     const GLint mvp_location = glGetUniformLocation(program, "MVP");
     const GLint vpos_location = glGetAttribLocation(program, "vPos");
+    const GLint vnorm_location = glGetAttribLocation(program, "vNorm");
 
     GLuint vertex_array;
     glGenVertexArrays(1, &vertex_array);
     glBindVertexArray(vertex_array);
     glEnableVertexAttribArray(static_cast<GLuint>(vpos_location));
+    glEnableVertexAttribArray(static_cast<GLuint>(vnorm_location));
     glVertexAttribPointer(static_cast<GLuint>(vpos_location), 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
                           (void*)offsetof(Vertex, pos));
+    glVertexAttribPointer(static_cast<GLuint>(vnorm_location), 3, GL_FLOAT, GL_FALSE,
+                          sizeof(Vertex), (void*)offsetof(Vertex, norm));
 
     while (!glfwWindowShouldClose(window)) {
         int width, height;
@@ -155,11 +160,13 @@ int main(void)
         const float ratio = width / (float)height;
 
         glViewport(0, 0, width, height);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glm::mat4 model{1.0f};
-        model = glm::rotate(model, static_cast<float>(glfwGetTime()), glm::vec3(0, 0, 1.0f));
-        glm::mat4 projection = glm::ortho(-ratio, ratio, -1.0f, 1.0f, 1.0f, -1.0f);
+        model = glm::translate(model, glm::vec3(0, 0, -5.0f));
+        model = glm::rotate(model, static_cast<float>(glfwGetTime()), glm::vec3(0, 1.0f, 0));
+        glm::mat4 projection = glm::perspective(glm::radians(90.f), ratio, 0.1f, 100.0f);
         glm::mat4 mvp = projection * model;
 
         glUseProgram(program);
