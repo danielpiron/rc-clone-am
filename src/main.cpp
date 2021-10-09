@@ -30,6 +30,7 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
 
@@ -114,6 +115,14 @@ static std::vector<Vertex> load_model(const char* filename, const char* obj_name
     return collector.vertices;
 }
 
+glm::mat4 model_matrix_from_entity(const Entity& entity)
+{
+    glm::mat4 model{1.0f};
+    model = glm::translate(model, glm::vec3(entity.position.x, 0, entity.position.y));
+    model = glm::rotate(model, entity.angle, glm::vec3(0, 1.0f, 0));
+    return model;
+}
+
 int main(void)
 {
     glfwSetErrorCallback(error_callback);
@@ -148,6 +157,7 @@ int main(void)
     std::copy(tree_verts.begin(), tree_verts.end(), std::back_inserter(vertices));
 
     Entity truck;
+    Entity tree;
 
     GLuint vertex_buffer;
     glGenBuffers(1, &vertex_buffer);
@@ -199,22 +209,32 @@ int main(void)
         glEnable(GL_DEPTH_TEST);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glm::mat4 model{1.0f};
-        model = glm::translate(model, glm::vec3(truck.position.x, 0, truck.position.y));
-        model = glm::rotate(model, truck.angle, glm::vec3(0, 1.0f, 0));
-
         glm::mat4 view{1.0f};
         view = glm::translate(view, glm::vec3(0, 0, -20.0f));
         view = glm::rotate(view, glm::radians(35.264f), glm::vec3(1.0f, 0, 0));
         view = glm::rotate(view, glm::radians(45.0f), glm::vec3(0, 1.0f, 0));
 
         glm::mat4 projection = glm::perspective(glm::radians(40.f), ratio, 0.1f, 100.0f);
-        glm::mat4 mvp = projection * view * model;
 
-        glUseProgram(program);
-        glUniformMatrix4fv(mvp_location, 1, GL_FALSE, glm::value_ptr(mvp));
-        glBindVertexArray(vertex_array);
-        glDrawArrays(GL_TRIANGLES, 0, static_cast<int>(vertices.size()));
+        {
+            glm::mat4 model = model_matrix_from_entity(truck);
+            glm::mat4 mvp = projection * view * model;
+
+            glUseProgram(program);
+            glUniformMatrix4fv(mvp_location, 1, GL_FALSE, glm::value_ptr(mvp));
+            glBindVertexArray(vertex_array);
+            glDrawArrays(GL_TRIANGLES, 0, static_cast<int>(truck_verts.size()));
+        }
+        {
+            glm::mat4 model = model_matrix_from_entity(tree);
+            glm::mat4 mvp = projection * view * model;
+
+            glUseProgram(program);
+            glUniformMatrix4fv(mvp_location, 1, GL_FALSE, glm::value_ptr(mvp));
+            glBindVertexArray(vertex_array);
+            glDrawArrays(GL_TRIANGLES, static_cast<int>(truck_verts.size()),
+                         static_cast<int>(tree_verts.size()));
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
