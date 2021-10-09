@@ -6,5 +6,5 @@ out vec3 color;
 void main()
 {
     gl_Position = MVP * vPos;
-    color = vNorm;
+    color = vNorm * 0.5 + vec3(0.5);
 }

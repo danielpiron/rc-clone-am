@@ -46,6 +46,15 @@ struct Vertex {
     glm::vec3 norm;
 };
 
+struct Entity {
+    glm::vec2 position;
+    float angle = 0;
+};
+
+bool holding_left = false;
+bool holding_right = false;
+bool holding_accel = false;
+
 static std::string load_text_from(const char* filename)
 {
     std::ifstream t(filename);
@@ -63,6 +72,25 @@ static void key_callback(GLFWwindow* window, int key, int /* scancode */, int ac
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GLFW_TRUE);
+    else if (key == GLFW_KEY_A) {
+        if (action == GLFW_PRESS) {
+            holding_left = true;
+        } else if (action == GLFW_RELEASE) {
+            holding_left = false;
+        }
+    } else if (key == GLFW_KEY_D) {
+        if (action == GLFW_PRESS) {
+            holding_right = true;
+        } else if (action == GLFW_RELEASE) {
+            holding_right = false;
+        }
+    } else if (key == GLFW_KEY_W) {
+        if (action == GLFW_PRESS) {
+            holding_accel = true;
+        } else if (action == GLFW_RELEASE) {
+            holding_accel = false;
+        }
+    }
 }
 
 static std::vector<Vertex> load_model(const char* filename)
@@ -112,6 +140,7 @@ int main(void)
     // NOTE: OpenGL error checks have been omitted for brevity
 
     auto vertices = load_model("rc-truck.obj");
+    Entity truck;
 
     GLuint vertex_buffer;
     glGenBuffers(1, &vertex_buffer);
@@ -163,12 +192,17 @@ int main(void)
         glEnable(GL_DEPTH_TEST);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        glm::mat4 model{1.0f};
+        model = glm::translate(model, glm::vec3(truck.position.x, 0, truck.position.y));
+        model = glm::rotate(model, truck.angle, glm::vec3(0, 1.0f, 0));
+
         glm::mat4 view{1.0f};
         view = glm::translate(view, glm::vec3(0, 0, -20.0f));
         view = glm::rotate(view, glm::radians(35.264f), glm::vec3(1.0f, 0, 0));
         view = glm::rotate(view, glm::radians(45.0f), glm::vec3(0, 1.0f, 0));
+
         glm::mat4 projection = glm::perspective(glm::radians(40.f), ratio, 0.1f, 100.0f);
-        glm::mat4 mvp = projection * view;
+        glm::mat4 mvp = projection * view * model;
 
         glUseProgram(program);
         glUniformMatrix4fv(mvp_location, 1, GL_FALSE, glm::value_ptr(mvp));
@@ -177,6 +211,17 @@ int main(void)
 
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        if (holding_left) {
+            truck.angle += 0.1f;
+        }
+        if (holding_right) {
+            truck.angle -= 0.1f;
+        }
+        if (holding_accel) {
+            glm::vec2 velocity{sinf(truck.angle), cosf(truck.angle)};
+            truck.position += velocity * -0.2f;
+        }
     }
 
     glfwDestroyWindow(window);
