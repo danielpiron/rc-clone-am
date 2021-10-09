@@ -93,7 +93,7 @@ static void key_callback(GLFWwindow* window, int key, int /* scancode */, int ac
     }
 }
 
-static std::vector<Vertex> load_model(const char* filename)
+static std::vector<Vertex> load_model(const char* filename, const char* obj_name)
 {
     ObjFile obj;
     obj.process_text(load_text_from(filename));
@@ -109,7 +109,7 @@ static std::vector<Vertex> load_model(const char* filename)
     };
 
     Collector collector;
-    obj.produce_triangle_list("Cube", &collector);
+    obj.produce_triangle_list(obj_name, &collector);
 
     return collector.vertices;
 }
@@ -139,7 +139,14 @@ int main(void)
 
     // NOTE: OpenGL error checks have been omitted for brevity
 
-    auto vertices = load_model("rc-truck.obj");
+    auto truck_verts = load_model("rc-truck.obj", "Cube");
+    auto tree_verts = load_model("tree.obj", "Tree");
+
+    decltype(truck_verts) vertices;
+    vertices.reserve(truck_verts.size() + tree_verts.size());
+    std::copy(truck_verts.begin(), truck_verts.end(), std::back_inserter(vertices));
+    std::copy(tree_verts.begin(), tree_verts.end(), std::back_inserter(vertices));
+
     Entity truck;
 
     GLuint vertex_buffer;

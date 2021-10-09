@@ -45,3 +45,4 @@ target_include_directories(gl_again SYSTEM PUBLIC "${PROJECT_BINARY_DIR}" ${CMAK
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/fragment.glsl fragment.glsl COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/vertex.glsl vertex.glsl COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/assets/rc-truck.obj rc-truck.obj COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/assets/tree.obj tree.obj COPYONLY)
