@@ -164,9 +164,9 @@ int main(void)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glm::mat4 model{1.0f};
-        model = glm::translate(model, glm::vec3(0, 0, -5.0f));
+        model = glm::translate(model, glm::vec3(0, 0, -10.0f));
         model = glm::rotate(model, static_cast<float>(glfwGetTime()), glm::vec3(0, 1.0f, 0));
-        glm::mat4 projection = glm::perspective(glm::radians(90.f), ratio, 0.1f, 100.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(60.f), ratio, 0.1f, 100.0f);
         glm::mat4 mvp = projection * model;
 
         glUseProgram(program);
