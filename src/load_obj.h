@@ -80,9 +80,6 @@ struct ObjFile {
     };
 
     struct Object {
-        std::vector<Vertex> vertices;
-        std::vector<TextureCoordinates> tex_coords;
-        std::vector<VertexNormal> vertex_normals;
         std::vector<Face> faces;
     };
 
@@ -192,13 +189,11 @@ struct ObjFile {
             _current_object = object_name;
             _objects[_current_object];
         } else if (line.command == "v") {
-            _objects[_current_object].vertices.push_back(parse_vertex(line.parameters));
+            vertices.push_back(parse_vertex(line.parameters));
         } else if (line.command == "vt") {
-            _objects[_current_object].tex_coords.push_back(
-                parse_texture_coordinates(line.parameters));
+            tex_coords.push_back(parse_texture_coordinates(line.parameters));
         } else if (line.command == "vn") {
-            _objects[_current_object].vertex_normals.push_back(
-                parse_vertex_normal(line.parameters));
+            vertex_normals.push_back(parse_vertex_normal(line.parameters));
         } else if (line.command == "f") {
             _objects[_current_object].faces.push_back(parse_face(line.parameters));
         }
@@ -224,8 +219,8 @@ struct ObjFile {
                 const auto v_index = static_cast<size_t>(face.indices[i].vertex - 1);
                 const auto t_index = static_cast<size_t>(face.indices[i].texture - 1);
                 const auto n_index = static_cast<size_t>(face.indices[i].normal - 1);
-                collector->handle_vertex(obj.vertices[v_index], obj.tex_coords[t_index],
-                                         obj.vertex_normals[n_index]);
+                collector->handle_vertex(vertices[v_index], tex_coords[t_index],
+                                         vertex_normals[n_index]);
             }
         }
     }
@@ -233,4 +228,8 @@ struct ObjFile {
     std::vector<std::string> _object_names;
     std::map<std::string, Object> _objects;
     std::string _current_object;
+
+    std::vector<Vertex> vertices;
+    std::vector<TextureCoordinates> tex_coords;
+    std::vector<VertexNormal> vertex_normals;
 };

@@ -58,10 +58,26 @@ f 1/3/5 3/2/5 4/5/5
 f 5/12/6 1/3/6 2/9/6
 )";
 
-// 6/11/4
-// v -1.000000 -1.000000 -1.000000
-// vt 0.125000 0.500000
-// vn 0.0000 -1.0000 0.0000
+struct TestCollector : public ObjFile::TriangleCollector {
+    struct Vertex {
+        glm::vec4 v;
+        glm::vec2 t;
+        glm::vec3 n;
+        bool operator==(const Vertex& other) const
+        {
+            return v == other.v && t == other.t && n == other.n;
+        }
+    };
+
+    void handle_vertex(const ObjFile::Vertex& vert, const ObjFile::TextureCoordinates& tex,
+                       const ObjFile::VertexNormal& norm) override
+    {
+        vertices.push_back(
+            {{vert.x, vert.y, vert.z, vert.w}, {tex.u, tex.v}, {norm.x, norm.y, norm.z}});
+    }
+
+    std::vector<Vertex> vertices;
+};
 
 std::ostream& operator<<(std::ostream& os, const ObjFile::Face::Indices& i)
 {
@@ -94,6 +110,14 @@ std::ostream& operator<<(std::ostream& os, const glm::vec3& v)
 std::ostream& operator<<(std::ostream& os, const glm::vec4& v)
 {
     os << glm::to_string(v);
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const TestCollector::Vertex& vertex)
+{
+    os << "v: " << vertex.v;
+    os << ", t: " << vertex.t;
+    os << ", n: " << vertex.n;
     return os;
 }
 
@@ -157,7 +181,7 @@ TEST(objFileLoader, CanReadVectors)
     std::vector<ObjFile::Vertex> expected{{0, 0.25f, 0.5f, 1.0f}, {-1.0, 0.75f, 0.25f, 1.0f}};
     ASSERT_EQ(obj.object_count(), 1);
     ASSERT_EQ(obj.objects()[0], "Cube");
-    EXPECT_EQ(obj["Cube"].vertices, expected);
+    EXPECT_EQ(obj.vertices, expected);
 }
 
 TEST(objFileLoader, CanReadTextureCoordinates)
@@ -173,7 +197,7 @@ TEST(objFileLoader, CanReadTextureCoordinates)
     std::vector<ObjFile::TextureCoordinates> expected{{0, 1.0f}, {0.5f, -0.25f}};
     ASSERT_EQ(obj.object_count(), 1);
     ASSERT_EQ(obj.objects()[0], "Cube");
-    EXPECT_EQ(obj["Cube"].tex_coords, expected);
+    EXPECT_EQ(obj.tex_coords, expected);
 }
 
 TEST(objFileLoader, CanReadVertexNormals)
@@ -190,7 +214,7 @@ TEST(objFileLoader, CanReadVertexNormals)
     std::vector<ObjFile::VertexNormal> expected{{0.25f, 0.5f, 1.0f}, {-0.25f, -0.5f, -1.0f}};
     ASSERT_EQ(obj.object_count(), 1);
     ASSERT_EQ(obj.objects()[0], "Cube");
-    EXPECT_EQ(obj["Cube"].vertex_normals, expected);
+    EXPECT_EQ(obj.vertex_normals, expected);
 }
 
 TEST(objFileLoader, CanReadFaces)
@@ -211,23 +235,6 @@ TEST(objFileLoader, CanReadFaces)
 
 TEST(objFileLoader, CanProductTriangleList)
 {
-    struct TestCollector : public ObjFile::TriangleCollector {
-        struct Vertex {
-            glm::vec4 v;
-            glm::vec2 t;
-            glm::vec3 n;
-        };
-
-        void handle_vertex(const ObjFile::Vertex& vert, const ObjFile::TextureCoordinates& tex,
-                           const ObjFile::VertexNormal& norm) override
-        {
-            vertices.push_back(
-                {{vert.x, vert.y, vert.z, vert.w}, {tex.u, tex.v}, {norm.x, norm.y, norm.z}});
-        }
-
-        std::vector<Vertex> vertices;
-    };
-
     ObjFile obj;
     obj.process_text(blender_output);
 
@@ -244,4 +251,32 @@ TEST(objFileLoader, CanProductTriangleList)
     EXPECT_EQ(collector.vertices[11].v, glm::vec4(-1.000000f, -1.000000f, -1.000000f, 1.f));
     EXPECT_EQ(collector.vertices[11].t, glm::vec2(0.125000f, 0.500000f));
     EXPECT_EQ(collector.vertices[11].n, glm::vec3(0, -1.f, 0));
+}
+
+TEST(objFileLoader, CanMultipleObjects)
+{
+    auto text = R"(o A
+                   v 0.0 0.25 0.5
+                   vt 0.0 1.0
+                   vn 0.25 0.5 1.0
+                   f 1/1/1 1/1/1 1/1/1
+                   o B
+                   v 0.5 0.25 0.0
+                   vt 1.0 0.0
+                   vn 1.0 0.5 0.25
+                   f 1/2/2 2/1/2 2/1/1
+                   )";
+
+    std::vector<TestCollector::Vertex> expected{
+        {{0, 0.25f, 0.5f, 1.0f}, {1.0f, 0}, {1.0f, 0.5f, 0.25f}},
+        {{0.5f, 0.25f, 0, 1.0f}, {0, 1.0f}, {1.0f, 0.5f, 0.25f}},
+        {{0.5f, 0.25f, 0, 1.0f}, {0, 1.0f}, {0.25f, 0.5f, 1.0f}}};
+
+    ObjFile obj;
+    obj.process_text(text);
+
+    TestCollector collector;
+    obj.produce_triangle_list("B", &collector);
+
+    ASSERT_EQ(collector.vertices, expected);
 }
