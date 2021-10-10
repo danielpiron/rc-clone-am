@@ -47,3 +47,4 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/vertex.glsl vertex.glsl C
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/assets/rc-truck.obj rc-truck.obj COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/assets/tree.obj tree.obj COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/assets/track.obj track.obj COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/assets/track_segments.obj track_segments.obj COPYONLY)

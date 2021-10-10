@@ -36,6 +36,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <random>
 #include <string>
 
@@ -51,6 +52,11 @@ struct Vertex {
 struct Entity {
     glm::vec2 position;
     float angle = 0;
+};
+
+struct TrackSegmentCoordinate {
+    std::string track_segment;
+    glm::vec4 offset;
 };
 
 bool holding_left = false;
@@ -95,20 +101,20 @@ static void key_callback(GLFWwindow* window, int key, int /* scancode */, int ac
     }
 }
 
+struct Collector : ObjFile::TriangleCollector {
+    std::vector<Vertex> vertices;
+
+    void handle_vertex(const ObjFile::Vertex& v, const ObjFile::TextureCoordinates&,
+                       const ObjFile::VertexNormal& n) override
+    {
+        vertices.push_back({{v.x, v.y, v.z, v.w}, {n.x, n.y, n.z}});
+    }
+};
+
 static std::vector<Vertex> load_model(const char* filename, const char* obj_name)
 {
     ObjFile obj;
     obj.process_text(load_text_from(filename));
-
-    struct Collector : ObjFile::TriangleCollector {
-        std::vector<Vertex> vertices;
-
-        void handle_vertex(const ObjFile::Vertex& v, const ObjFile::TextureCoordinates&,
-                           const ObjFile::VertexNormal& n) override
-        {
-            vertices.push_back({{v.x, v.y, v.z, v.w}, {n.x, n.y, n.z}});
-        }
-    };
 
     Collector collector;
     obj.produce_triangle_list(obj_name, &collector);
@@ -124,8 +130,76 @@ glm::mat4 model_matrix_from_entity(const Entity& entity)
     return model;
 }
 
+std::map<std::string, std::vector<Vertex>> load_track_segments(const char* filename)
+{
+    ObjFile obj;
+    obj.process_text(load_text_from(filename));
+
+    std::map<std::string, std::vector<Vertex>> result;
+    for (const auto& obj_name : obj.objects()) {
+        Collector collector;
+        obj.produce_triangle_list(obj_name, &collector);
+        result[obj_name] = collector.vertices;
+    }
+    return result;
+}
+
+const char* translate_track_ascii(char c)
+{
+    switch (c) {
+    case '-':
+        return "Horizontal";
+    case ';':
+        return "Top_Right";
+    case '|':
+        return "Vertical";
+    case 'j':
+        return "Bottom_Right";
+    case 'l':
+        return "Bottom_Left";
+    case 'r':
+        return "Top_Left";
+    default:
+        return "\0";
+    }
+}
+
+std::vector<TrackSegmentCoordinate> translate_track_layout(const char* track_layout)
+{
+    std::vector<TrackSegmentCoordinate> result;
+
+    constexpr auto tile_size = 6.0f;
+    float y_offset = 0;
+    for (const auto& row_text : ObjFile::split(track_layout, '\n')) {
+        float x_offset = 0;
+        for (const char c : row_text) {
+            const char* key = translate_track_ascii(c);
+            if (key[0] != '\0') {
+                result.push_back({key, {x_offset, 0, y_offset, 0}});
+            }
+            x_offset += tile_size;
+        }
+        y_offset += tile_size;
+    }
+    return result;
+}
+
+void place_track_segment_with_offset(const std::vector<Vertex>& src, const glm::vec4& offset,
+                                     std::vector<Vertex>& dest)
+{
+    for (auto vertex : src) {
+        vertex.pos += offset;
+        dest.emplace_back(vertex);
+    }
+}
+
 int main(void)
 {
+    const char* track_layout = {"r-;  \n"
+                                "| l-;\n"
+                                "|   |\n"
+                                "l---j\n"};
+
     glfwSetErrorCallback(error_callback);
 
     if (!glfwInit())
@@ -151,7 +225,15 @@ int main(void)
 
     auto truck_verts = load_model("rc-truck.obj", "Cube");
     auto tree_verts = load_model("tree.obj", "Tree");
-    auto track_verts = load_model("track.obj", "Track");
+    decltype(truck_verts) track_verts;
+
+    auto track_segments = load_track_segments("track_segments.obj");
+    const auto track_segment_offsets = translate_track_layout(track_layout);
+
+    for (const auto& track_offset : track_segment_offsets) {
+        place_track_segment_with_offset(track_segments[track_offset.track_segment],
+                                        track_offset.offset, track_verts);
+    }
 
     decltype(truck_verts) vertices;
     vertices.reserve(truck_verts.size() + tree_verts.size());
@@ -235,7 +317,7 @@ int main(void)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glm::mat4 view{1.0f};
-        view = glm::translate(view, glm::vec3(0, 0, -35.0f));
+        view = glm::translate(view, glm::vec3(0, 0, -40.0f));
         view = glm::rotate(view, glm::radians(35.264f), glm::vec3(1.0f, 0, 0));
         view = glm::rotate(view, glm::radians(45.0f), glm::vec3(0, 1.0f, 0));
 
@@ -243,7 +325,9 @@ int main(void)
 
         glm::mat4 projection = glm::perspective(glm::radians(35.f), ratio, 0.1f, 100.0f);
 
-        glm::mat4 track_mvp = projection * view;
+        glm::mat4 track_model = glm::scale(glm::vec3(10.0f));
+        track_model = glm::rotate(track_model, glm::radians(-90.0f), glm::vec3(0, 1.0f, 0));
+        glm::mat4 track_mvp = projection * view * track_model;
         glUseProgram(program);
         glUniformMatrix4fv(mvp_location, 1, GL_FALSE, glm::value_ptr(track_mvp));
         glBindVertexArray(vertex_array);
@@ -277,7 +361,7 @@ int main(void)
         }
         if (holding_accel) {
             glm::vec2 velocity{sinf(truck.angle), cosf(truck.angle)};
-            truck.position += velocity * -0.2f;
+            truck.position += velocity * -0.3f;
         }
     }
 
