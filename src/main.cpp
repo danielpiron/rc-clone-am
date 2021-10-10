@@ -151,14 +151,17 @@ int main(void)
 
     auto truck_verts = load_model("rc-truck.obj", "Cube");
     auto tree_verts = load_model("tree.obj", "Tree");
+    auto track_verts = load_model("track.obj", "Track");
 
     decltype(truck_verts) vertices;
     vertices.reserve(truck_verts.size() + tree_verts.size());
     std::copy(truck_verts.begin(), truck_verts.end(), std::back_inserter(vertices));
     std::copy(tree_verts.begin(), tree_verts.end(), std::back_inserter(vertices));
+    std::copy(track_verts.begin(), track_verts.end(), std::back_inserter(vertices));
 
     constexpr auto tree_count = 40;
-    constexpr auto max_distance = 60.;
+    constexpr auto max_distance = 60.f;
+    constexpr auto min_distance = 40.f;
     std::vector<Entity> entities(tree_count + 1);
     Entity& truck = entities[0];
 
@@ -166,12 +169,12 @@ int main(void)
         std::random_device rd;
         std::mt19937 mt(rd());
         std::uniform_real_distribution<float> radian_dist(0, static_cast<float>(M_PI) * 2.f);
-        std::uniform_real_distribution<float> distance_dist(0, max_distance);
+        std::uniform_real_distribution<float> distance_dist(0, max_distance - min_distance);
 
         for (auto& entity : entities) {
             if (&entity == &truck)
                 continue;
-            auto distance = distance_dist(mt);
+            auto distance = distance_dist(mt) + min_distance;
             auto theta = radian_dist(mt);
             entity.position.x = sinf(theta) * distance;
             entity.position.y = cosf(theta) * distance;
@@ -232,13 +235,20 @@ int main(void)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glm::mat4 view{1.0f};
-        view = glm::translate(view, glm::vec3(0, 0, -30.0f));
+        view = glm::translate(view, glm::vec3(0, 0, -35.0f));
         view = glm::rotate(view, glm::radians(35.264f), glm::vec3(1.0f, 0, 0));
         view = glm::rotate(view, glm::radians(45.0f), glm::vec3(0, 1.0f, 0));
 
         view = glm::translate(view, glm::vec3(-truck.position.x, 0, -truck.position.y));
 
         glm::mat4 projection = glm::perspective(glm::radians(40.f), ratio, 0.1f, 100.0f);
+
+        glm::mat4 track_mvp = projection * view;
+        glUseProgram(program);
+        glUniformMatrix4fv(mvp_location, 1, GL_FALSE, glm::value_ptr(track_mvp));
+        glBindVertexArray(vertex_array);
+        glDrawArrays(GL_TRIANGLES, static_cast<int>(truck_verts.size() + tree_verts.size()),
+                     static_cast<int>(track_verts.size()));
 
         for (const auto& entity : entities) {
             glm::mat4 model = model_matrix_from_entity(entity);
