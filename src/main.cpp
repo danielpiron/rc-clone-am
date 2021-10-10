@@ -241,7 +241,7 @@ int main(void)
 
         view = glm::translate(view, glm::vec3(-truck.position.x, 0, -truck.position.y));
 
-        glm::mat4 projection = glm::perspective(glm::radians(40.f), ratio, 0.1f, 100.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(35.f), ratio, 0.1f, 100.0f);
 
         glm::mat4 track_mvp = projection * view;
         glUseProgram(program);
@@ -270,10 +270,10 @@ int main(void)
         glfwPollEvents();
 
         if (holding_left) {
-            truck.angle += 0.1f;
+            truck.angle += 0.05f;
         }
         if (holding_right) {
-            truck.angle -= 0.1f;
+            truck.angle -= 0.05f;
         }
         if (holding_accel) {
             glm::vec2 velocity{sinf(truck.angle), cosf(truck.angle)};
