@@ -1,29 +1,3 @@
-//========================================================================
-// OpenGL triangle example
-// Copyright (c) Camilla Löwy <elmindreda@glfw.org>
-//
-// This software is provided 'as-is', without any express or implied
-// warranty. In no event will the authors be held liable for any damages
-// arising from the use of this software.
-//
-// Permission is granted to anyone to use this software for any purpose,
-// including commercial applications, and to alter it and redistribute it
-// freely, subject to the following restrictions:
-//
-// 1. The origin of this software must not be misrepresented; you must not
-//    claim that you wrote the original software. If you use this software
-//    in a product, an acknowledgment in the product documentation would
-//    be appreciated but is not required.
-//
-// 2. Altered source versions must be plainly marked as such, and must not
-//    be misrepresented as being the original software.
-//
-// 3. This notice may not be removed or altered from any source
-//    distribution.
-//
-//========================================================================
-//! [code]
-
 #include "load_obj.h"
 
 #include <glad/glad.h>
@@ -48,6 +22,7 @@
 
 struct Vertex {
     glm::vec4 pos;
+    glm::vec2 tex;
     glm::vec3 norm;
 };
 
@@ -106,10 +81,10 @@ static void key_callback(GLFWwindow* window, int key, int /* scancode */, int ac
 struct Collector : ObjFile::TriangleCollector {
     std::vector<Vertex> vertices;
 
-    void handle_vertex(const ObjFile::Vertex& v, const ObjFile::TextureCoordinates&,
+    void handle_vertex(const ObjFile::Vertex& v, const ObjFile::TextureCoordinates& t,
                        const ObjFile::VertexNormal& n) override
     {
-        vertices.push_back({{v.x, v.y, v.z, v.w}, {n.x, n.y, n.z}});
+        vertices.push_back({{v.x, v.y, v.z, v.w}, {t.u, 1.0f - t.v}, {n.x, n.y, n.z}});
     }
 };
 
@@ -195,7 +170,7 @@ void place_track_segment_with_offset(const std::vector<Vertex>& src, const glm::
     }
 }
 
-void try_png(const char* filename)
+GLuint try_png(const char* filename)
 {
     png_image image;
 
@@ -209,17 +184,20 @@ void try_png(const char* filename)
 
         if (png_image_finish_read(&image, NULL /*background*/, buffer, 0 /*row_stride*/,
                                   NULL /*colormap for PNG_FORMAT_FLAG_COLORMAP */)) {
-            auto ptr = buffer;
-            for (size_t i = 0; i < 64; ++i) {
-                std::cout << static_cast<int>(ptr[0]) << ", ";
-                std::cout << static_cast<int>(ptr[1]) << ", ";
-                std::cout << static_cast<int>(ptr[2]) << ", ";
-                std::cout << static_cast<int>(ptr[3]);
-                ptr += 4;
-                std::cout << std::endl;
-            }
+            GLuint texture = 0;
+            glGenTextures(1, &texture);
+            glBindTexture(GL_TEXTURE_2D, texture);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+            auto ptr = reinterpret_cast<GLubyte*>(buffer);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, static_cast<GLsizei>(image.width),
+                         static_cast<GLsizei>(image.height), 0, GL_RGBA, GL_UNSIGNED_BYTE, ptr);
+            return texture;
         }
     }
+    return 0;
 }
 
 int main(void)
@@ -229,7 +207,6 @@ int main(void)
                                 "|   |\n"
                                 "l---j\n"};
 
-    try_png("/Users/pironvila/Downloads/ImphenziaPalette01.png");
     glfwSetErrorCallback(error_callback);
 
     if (!glfwInit())
@@ -252,6 +229,7 @@ int main(void)
     glfwSwapInterval(1);
 
     // NOTE: OpenGL error checks have been omitted for brevity
+    try_png("ImphenziaPalette01.png");
 
     auto truck_verts = load_model("rc-truck.obj", "Cube");
     auto tree_verts = load_model("tree.obj", "Tree");
@@ -324,16 +302,20 @@ int main(void)
     const GLint mvp_location = glGetUniformLocation(program, "MVP");
     const GLint vpos_location = glGetAttribLocation(program, "vPos");
     const GLint vnorm_location = glGetAttribLocation(program, "vNorm");
+    const GLint vtex_location = glGetAttribLocation(program, "vTex");
 
     GLuint vertex_array;
     glGenVertexArrays(1, &vertex_array);
     glBindVertexArray(vertex_array);
     glEnableVertexAttribArray(static_cast<GLuint>(vpos_location));
     glEnableVertexAttribArray(static_cast<GLuint>(vnorm_location));
+    glEnableVertexAttribArray(static_cast<GLuint>(vtex_location));
     glVertexAttribPointer(static_cast<GLuint>(vpos_location), 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
                           (void*)offsetof(Vertex, pos));
     glVertexAttribPointer(static_cast<GLuint>(vnorm_location), 3, GL_FLOAT, GL_FALSE,
                           sizeof(Vertex), (void*)offsetof(Vertex, norm));
+    glVertexAttribPointer(static_cast<GLuint>(vtex_location), 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                          (void*)offsetof(Vertex, tex));
 
     while (!glfwWindowShouldClose(window)) {
         int width, height;
@@ -400,5 +382,3 @@ int main(void)
     glfwTerminate();
     exit(EXIT_SUCCESS);
 }
-
-//! [code]

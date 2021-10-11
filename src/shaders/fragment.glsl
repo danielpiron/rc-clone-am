@@ -1,7 +1,11 @@
 #version 330
-in vec3 color;
+
+in vec2 tex_coord;
 out vec4 fragment;
+
+uniform sampler2D imphenzia;
+
 void main()
 {
-    fragment = vec4(color, 1.0);
+    fragment = texture(imphenzia, tex_coord);
 }
