@@ -7,3 +7,6 @@
 [submodule "deps/glm"]
 	path = deps/glm
 	url = git@github.com:g-truc/glm.git
+[submodule "deps/libpng"]
+	path = deps/libpng
+	url = git@github.com:glennrp/libpng.git

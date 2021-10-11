@@ -34,6 +34,8 @@
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
 
+#include <png.h>
+
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -193,6 +195,33 @@ void place_track_segment_with_offset(const std::vector<Vertex>& src, const glm::
     }
 }
 
+void try_png(const char* filename)
+{
+    png_image image;
+
+    /* Only the image structure version number needs to be set. */
+    std::memset(&image, 0, sizeof image);
+    image.version = PNG_IMAGE_VERSION;
+
+    if (png_image_begin_read_from_file(&image, filename)) {
+        image.format = PNG_FORMAT_RGBA;
+        auto buffer = reinterpret_cast<png_bytep>(malloc(PNG_IMAGE_SIZE(image)));
+
+        if (png_image_finish_read(&image, NULL /*background*/, buffer, 0 /*row_stride*/,
+                                  NULL /*colormap for PNG_FORMAT_FLAG_COLORMAP */)) {
+            auto ptr = buffer;
+            for (size_t i = 0; i < 64; ++i) {
+                std::cout << static_cast<int>(ptr[0]) << ", ";
+                std::cout << static_cast<int>(ptr[1]) << ", ";
+                std::cout << static_cast<int>(ptr[2]) << ", ";
+                std::cout << static_cast<int>(ptr[3]);
+                ptr += 4;
+                std::cout << std::endl;
+            }
+        }
+    }
+}
+
 int main(void)
 {
     const char* track_layout = {"r-;  \n"
@@ -200,6 +229,7 @@ int main(void)
                                 "|   |\n"
                                 "l---j\n"};
 
+    try_png("/Users/pironvila/Downloads/ImphenziaPalette01.png");
     glfwSetErrorCallback(error_callback);
 
     if (!glfwInit())
