@@ -300,6 +300,7 @@ int main(void)
     glLinkProgram(program);
 
     const GLint mvp_location = glGetUniformLocation(program, "MVP");
+    const GLint model_location = glGetUniformLocation(program, "ModelMatrix");
     const GLint vpos_location = glGetAttribLocation(program, "vPos");
     const GLint vnorm_location = glGetAttribLocation(program, "vNorm");
     const GLint vtex_location = glGetAttribLocation(program, "vTex");
@@ -342,6 +343,7 @@ int main(void)
         glm::mat4 track_mvp = projection * view * track_model;
         glUseProgram(program);
         glUniformMatrix4fv(mvp_location, 1, GL_FALSE, glm::value_ptr(track_mvp));
+        glUniformMatrix4fv(model_location, 1, GL_FALSE, glm::value_ptr(track_model));
         glBindVertexArray(vertex_array);
         glDrawArrays(GL_TRIANGLES, static_cast<int>(truck_verts.size() + tree_verts.size()),
                      static_cast<int>(track_verts.size()));
@@ -352,6 +354,7 @@ int main(void)
 
             glUseProgram(program);
             glUniformMatrix4fv(mvp_location, 1, GL_FALSE, glm::value_ptr(mvp));
+            glUniformMatrix4fv(model_location, 1, GL_FALSE, glm::value_ptr(model));
             glBindVertexArray(vertex_array);
 
             if (&entity == &truck) {
