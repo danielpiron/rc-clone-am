@@ -39,6 +39,7 @@ struct TrackSegmentCoordinate {
 bool holding_left = false;
 bool holding_right = false;
 bool holding_accel = false;
+bool holding_reverse = false;
 
 static std::string load_text_from(const char* filename)
 {
@@ -74,6 +75,12 @@ static void key_callback(GLFWwindow* window, int key, int /* scancode */, int ac
             holding_accel = true;
         } else if (action == GLFW_RELEASE) {
             holding_accel = false;
+        }
+    } else if (key == GLFW_KEY_S) {
+        if (action == GLFW_PRESS) {
+            holding_reverse = true;
+        } else if (action == GLFW_RELEASE) {
+            holding_reverse = false;
         }
     }
 }
@@ -377,6 +384,9 @@ int main(void)
         if (holding_accel) {
             glm::vec2 velocity{sinf(truck.angle), cosf(truck.angle)};
             truck.position += velocity * -0.3f;
+        } else if (holding_reverse) {
+            glm::vec2 velocity{sinf(truck.angle), cosf(truck.angle)};
+            truck.position -= velocity * -0.3f;
         }
     }
 
