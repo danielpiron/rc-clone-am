@@ -153,7 +153,7 @@ std::vector<TrackSegmentCoordinate> translate_track_layout(const char* track_lay
 {
     std::vector<TrackSegmentCoordinate> result;
 
-    constexpr auto tile_size = 6.0f;
+    constexpr auto tile_size = 60.0f;
     float y_offset = 0;
     for (const auto& row_text : ObjFile::split(track_layout, '\n')) {
         float x_offset = 0;
@@ -169,10 +169,14 @@ std::vector<TrackSegmentCoordinate> translate_track_layout(const char* track_lay
     return result;
 }
 
-void place_track_segment_with_offset(const std::vector<Vertex>& src, const glm::vec4& offset,
-                                     std::vector<Vertex>& dest)
+void place_track_segment_with_offset_and_scale(const std::vector<Vertex>& src,
+                                               const glm::vec4& offset, const float scale,
+                                               std::vector<Vertex>& dest)
 {
     for (auto vertex : src) {
+        vertex.pos.x *= scale;
+        vertex.pos.y *= scale;
+        vertex.pos.z *= scale;
         vertex.pos += offset;
         dest.emplace_back(vertex);
     }
@@ -254,8 +258,8 @@ int main(void)
     const auto track_segment_offsets = translate_track_layout(track_layout);
 
     for (const auto& track_offset : track_segment_offsets) {
-        place_track_segment_with_offset(track_segments[track_offset.track_segment],
-                                        track_offset.offset, track_verts);
+        place_track_segment_with_offset_and_scale(track_segments[track_offset.track_segment],
+                                                  track_offset.offset, 10.0f, track_verts);
     }
 
     decltype(truck_verts) vertices;
@@ -348,15 +352,14 @@ int main(void)
         glm::mat4 view{1.0f};
         view = glm::translate(view, glm::vec3(0, 0, -40.0f));
         view = glm::rotate(view, glm::radians(35.264f), glm::vec3(1.0f, 0, 0));
-        view = glm::rotate(view, glm::radians(45.0f), glm::vec3(0, 1.0f, 0));
+        view = glm::rotate(view, glm::radians(-45.0f), glm::vec3(0, 1.0f, 0));
 
         view = glm::translate(view, glm::vec3(-truck.position.x, 0, -truck.position.y));
 
+        glm::mat4 track_model = glm::mat4{1.0};
         glm::mat4 projection = glm::perspective(glm::radians(35.f), ratio, 0.1f, 100.0f);
 
-        glm::mat4 track_model = glm::scale(glm::vec3(10.0f));
-        track_model = glm::rotate(track_model, glm::radians(-90.0f), glm::vec3(0, 1.0f, 0));
-        glm::mat4 track_mvp = projection * view * track_model;
+        glm::mat4 track_mvp = projection * view;
         glUseProgram(program);
         glUniformMatrix4fv(mvp_location, 1, GL_FALSE, glm::value_ptr(track_mvp));
         glUniformMatrix4fv(model_location, 1, GL_FALSE, glm::value_ptr(track_model));
