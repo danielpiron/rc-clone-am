@@ -10,6 +10,7 @@
 
 #include <png.h>
 
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -207,6 +208,13 @@ GLuint try_png(const char* filename)
     return 0;
 }
 
+struct TruckState {
+    glm::vec2 velocity{0};
+    float friction = 0.04f;
+    float max_power = 0.04f;
+    float power = 0;
+};
+
 int main(void)
 {
     const char* track_layout = {"r-;  \n"
@@ -261,6 +269,7 @@ int main(void)
     constexpr auto min_distance = 40.f;
     std::vector<Entity> entities(tree_count + 1);
     Entity& truck = entities[0];
+    TruckState truck_state;
 
     {
         std::random_device rd;
@@ -376,18 +385,23 @@ int main(void)
         glfwPollEvents();
 
         if (holding_left) {
-            truck.angle += 0.05f;
+            truck.angle += 0.05;
+        } else if (holding_right) {
+            truck.angle -= 0.05;
         }
-        if (holding_right) {
-            truck.angle -= 0.05f;
-        }
+
         if (holding_accel) {
-            glm::vec2 velocity{sinf(truck.angle), cosf(truck.angle)};
-            truck.position += velocity * -0.3f;
-        } else if (holding_reverse) {
-            glm::vec2 velocity{sinf(truck.angle), cosf(truck.angle)};
-            truck.position -= velocity * -0.3f;
+            truck_state.power += .01f;
+        } else {
+            truck_state.power -= .01f;
         }
+
+        truck_state.power = std::clamp(truck_state.power, 0.0f, 1.0f);
+
+        auto direction = glm::rotate(glm::vec2{0.0f, -1.0f}, -truck.angle);
+        truck_state.velocity += direction * (truck_state.power * truck_state.max_power);
+        truck_state.velocity += truck_state.velocity * -truck_state.friction;
+        truck.position += truck_state.velocity;
     }
 
     glfwDestroyWindow(window);
