@@ -132,6 +132,7 @@ std::map<std::string, std::vector<Vertex>> load_track_segments(const char* filen
 const char* translate_track_ascii(char c)
 {
     switch (c) {
+    case 's':
     case '-':
         return "Horizontal";
     case ';':
@@ -161,6 +162,25 @@ std::vector<TrackSegmentCoordinate> translate_track_layout(const char* track_lay
             const char* key = translate_track_ascii(c);
             if (key[0] != '\0') {
                 result.push_back({key, {x_offset, 0, y_offset, 0}});
+            }
+            x_offset += tile_size;
+        }
+        y_offset += tile_size;
+    }
+    return result;
+}
+
+glm::vec2 locate_start_position(const char* track_layout)
+{
+    glm::vec2 result{0};
+    constexpr auto tile_size = 60.0f;
+    float y_offset = 0;
+    for (const auto& row_text : ObjFile::split(track_layout, '\n')) {
+        float x_offset = 0;
+        for (const char c : row_text) {
+            if (c == 's') {
+                result = glm::vec2{x_offset, y_offset};
+                return result;
             }
             x_offset += tile_size;
         }
@@ -222,10 +242,16 @@ struct TruckState {
 
 int main(void)
 {
+    /*
     const char* track_layout = {"r-;  \n"
                                 "| l-;\n"
                                 "|   |\n"
                                 "l---j\n"};
+                                */
+    const char* track_layout = {"   r;\n"
+                                "r--j|\n"
+                                "|r-sj\n"
+                                "lj   \n"};
 
     glfwSetErrorCallback(error_callback);
 
@@ -274,6 +300,9 @@ int main(void)
     constexpr auto min_distance = 40.f;
     std::vector<Entity> entities(tree_count + 1);
     Entity& truck = entities[0];
+    truck.position = locate_start_position(track_layout);
+    truck.angle = static_cast<float>(M_PI) / 2.0f;
+
     TruckState truck_state;
 
     {
