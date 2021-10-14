@@ -133,6 +133,7 @@ const char* translate_track_ascii(char c)
 {
     switch (c) {
     case 's':
+        return "Starting_Line";
     case '-':
         return "Horizontal";
     case ';':
