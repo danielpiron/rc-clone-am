@@ -215,8 +215,9 @@ GLuint try_png(const char* filename)
 struct TruckState {
     glm::vec2 velocity{0};
     float friction = 0.04f;
-    float max_power = 0.04f;
+    float max_power = 0.035f;
     float power = 0;
+    float acceleration = 0.005f;
 };
 
 int main(void)
@@ -394,9 +395,9 @@ int main(void)
         }
 
         if (holding_accel) {
-            truck_state.power += .01f;
+            truck_state.power += truck_state.acceleration;
         } else {
-            truck_state.power -= .01f;
+            truck_state.power -= truck_state.acceleration;
         }
 
         truck_state.power = std::clamp(truck_state.power, 0.0f, 1.0f);
