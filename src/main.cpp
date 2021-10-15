@@ -151,22 +151,25 @@ const char* translate_track_ascii(char c)
     }
 }
 
-std::vector<TrackSegmentCoordinate> translate_track_layout(const char* track_layout)
+std::vector<std::vector<TrackSegmentCoordinate>> translate_track_layout(const char* track_layout)
 {
-    std::vector<TrackSegmentCoordinate> result;
+
+    const auto layout_rows = ObjFile::split(track_layout, '\n');
+    const auto column_count = layout_rows[0].length();
+
+    std::vector<std::vector<TrackSegmentCoordinate>> result(
+        layout_rows.size(), std::vector<TrackSegmentCoordinate>(column_count));
 
     constexpr auto tile_size = 60.0f;
-    float y_offset = 0;
-    for (const auto& row_text : ObjFile::split(track_layout, '\n')) {
-        float x_offset = 0;
+    size_t y = 0;
+    for (const auto& row_text : layout_rows) {
+        size_t x = 0;
         for (const char c : row_text) {
             const char* key = translate_track_ascii(c);
-            if (key[0] != '\0') {
-                result.push_back({key, {x_offset, 0, y_offset, 0}});
-            }
-            x_offset += tile_size;
+            result[y][x] = {key, {x * tile_size, 0, y * tile_size, 0.0f}};
+            ++x;
         }
-        y_offset += tile_size;
+        ++y;
     }
     return result;
 }
@@ -188,6 +191,20 @@ glm::vec2 locate_start_position(const char* track_layout)
         y_offset += tile_size;
     }
     return result;
+}
+
+TrackSegmentCoordinate
+get_entity_track_segment(const Entity& entity,
+                         const std::vector<std::vector<TrackSegmentCoordinate>>& track_offsets)
+{
+    int x = static_cast<int>(entity.position.x + 30) / 60;
+    int y = static_cast<int>(entity.position.y + 30) / 60;
+
+    if (x < 0 || x < 0 || static_cast<size_t>(y) >= track_offsets.size() ||
+        static_cast<size_t>(x) >= track_offsets[0].size())
+        return TrackSegmentCoordinate();
+
+    return track_offsets.at(static_cast<size_t>(y)).at(static_cast<size_t>(x));
 }
 
 void place_track_segment_with_offset_and_scale(const std::vector<Vertex>& src,
@@ -241,6 +258,20 @@ struct TruckState {
     float acceleration = 0.005f;
 };
 
+void clamp_entity_to_curve(const glm::vec2& reference_point, Entity& entity)
+{
+    constexpr auto half_track_width = 9.0f;
+    const auto corner_to_entity = entity.position - reference_point;
+    const auto distance_to_reference = glm::length(corner_to_entity);
+
+    const auto adjusted_distance =
+        std::clamp(distance_to_reference, 30.0f - half_track_width, 30.0f + half_track_width);
+
+    if (adjusted_distance != distance_to_reference) {
+        entity.position = reference_point + glm::normalize(corner_to_entity) * adjusted_distance;
+    }
+}
+
 int main(void)
 {
     /*
@@ -285,9 +316,13 @@ int main(void)
     auto track_segments = load_track_segments("track_segments.obj");
     const auto track_segment_offsets = translate_track_layout(track_layout);
 
-    for (const auto& track_offset : track_segment_offsets) {
-        place_track_segment_with_offset_and_scale(track_segments[track_offset.track_segment],
-                                                  track_offset.offset, 10.0f, track_verts);
+    for (const auto& track_offset_row : track_segment_offsets) {
+        for (const auto& track_offset : track_offset_row) {
+            if (track_offset.track_segment.empty())
+                continue;
+            place_track_segment_with_offset_and_scale(track_segments[track_offset.track_segment],
+                                                      track_offset.offset, 10.0f, track_verts);
+        }
     }
 
     decltype(truck_verts) vertices;
@@ -305,7 +340,6 @@ int main(void)
     truck.angle = static_cast<float>(M_PI) / 2.0f;
 
     TruckState truck_state;
-
     {
         std::random_device rd;
         std::mt19937 mt(rd());
@@ -372,6 +406,7 @@ int main(void)
     glm::vec2 camera_velocity{0};
     glm::vec2 camera_target = truck.position;
 
+    std::string current_segment = "";
     while (!glfwWindowShouldClose(window)) {
         int width, height;
         glfwGetFramebufferSize(window, &width, &height);
@@ -444,6 +479,40 @@ int main(void)
         truck_state.velocity += direction * (truck_state.power * truck_state.max_power);
         truck_state.velocity += truck_state.velocity * -truck_state.friction;
         truck.position += truck_state.velocity;
+
+        const auto track_offset = get_entity_track_segment(truck, track_segment_offsets);
+
+        if (track_offset.track_segment != current_segment) {
+            current_segment = track_offset.track_segment;
+            std::cout << "Current segment " << current_segment << std::endl;
+            std::cout << "Segment X:" << track_offset.offset.x << std::endl;
+            std::cout << "Segment Y:" << track_offset.offset.z << std::endl;
+            std::cout << "Truck Position:  " << glm::to_string(truck.position) << std::endl;
+        }
+
+        constexpr auto track_width = 18.0f;
+        constexpr auto half_track_width = track_width / 2.0f;
+        if (current_segment == "Vertical") {
+            truck.position.x =
+                std::clamp(truck.position.x, track_offset.offset.x - half_track_width,
+                           track_offset.offset.x + half_track_width);
+        } else if (current_segment == "Horizontal" || current_segment == "Starting_Line") {
+            truck.position.y =
+                std::clamp(truck.position.y, track_offset.offset.z - half_track_width,
+                           track_offset.offset.z + half_track_width);
+        } else if (current_segment == "Top_Left") {
+            clamp_entity_to_curve({track_offset.offset.x + 30.0f, track_offset.offset.z + 30.0f},
+                                  truck);
+        } else if (current_segment == "Top_Right") {
+            clamp_entity_to_curve({track_offset.offset.x - 30.0f, track_offset.offset.z + 30.0f},
+                                  truck);
+        } else if (current_segment == "Bottom_Right") {
+            clamp_entity_to_curve({track_offset.offset.x - 30.0f, track_offset.offset.z - 30.0f},
+                                  truck);
+        } else if (current_segment == "Bottom_Left") {
+            clamp_entity_to_curve({track_offset.offset.x + 30.0f, track_offset.offset.z - 30.0f},
+                                  truck);
+        }
     }
 
     glfwDestroyWindow(window);
