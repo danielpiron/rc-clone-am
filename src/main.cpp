@@ -1,3 +1,4 @@
+#define _USE_MATH_DEFINES
 #include "load_obj.h"
 
 #include <glad/glad.h>

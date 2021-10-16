@@ -21,7 +21,7 @@ target_link_libraries(
   unit_tests
   gtest_main
 )
-target_compile_options(unit_tests PUBLIC ${CLANG_WARNINGS} -Werror -g)
+target_compile_options(unit_tests PUBLIC ${COMPILER_FLAGS})
 target_include_directories(unit_tests PRIVATE "${PROJECT_BINARY_DIR}" ${CMAKE_CURRENT_SOURCE_DIR}/../src)
 target_include_directories(unit_tests SYSTEM PUBLIC "${PROJECT_BINARY_DIR}" ${CMAKE_CURRENT_SOURCE_DIR}/../deps/glm)
 target_link_options(unit_tests PUBLIC)

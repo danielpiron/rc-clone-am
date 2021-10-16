@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.0)
-project(player VERSION 0.1.0)
+project(rc_clone_am VERSION 0.1.0)
 
 # Warnings flags borrowed from Jason Turner's cpp_starter_project repo
 # https://github.com/lefticus/cpp_starter_project/blob/master/cmake/CompilerWarnings.cmake
@@ -22,6 +22,14 @@ set(CLANG_WARNINGS
     -Wformat=2 # warn on security issues around functions that format output (ie printf)
 )
 
+if(MSVC)
+    set(COMPILER_FLAGS /W4)
+else()
+    set(COMPILER_FLAGS ${CLANG_WARNINGS} -fsanitize=address -g -Werror)
+    set(LINKER_FLAGS --fsanitize=address)
+endif()
+
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
@@ -30,13 +38,21 @@ enable_testing()
 
 add_subdirectory(deps/glfw)
 add_subdirectory(deps/glad)
+add_subdirectory(deps/zlib)
+
+if(MSVC)
+    set(PNG_BUILD_ZLIB ON)
+    set(ZLIB_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/deps/zlib ${PROJECT_BINARY_DIR}/deps/zlib)
+    set(ZLIB_LIBRARIES ${PROJECT_BINARY_DIR}/deps/zlib/Debug/zlibstaticd.lib)
+endif()
+
 add_subdirectory(deps/libpng)
 
 add_subdirectory(tests)
 
 add_executable(gl_again ${PLAYER_SOURCE} src/main.cpp)
-target_compile_options(gl_again PUBLIC ${CLANG_WARNINGS} -fsanitize=address -g -Werror)
-target_link_options(gl_again PUBLIC -fsanitize=address)
+target_compile_options(gl_again PUBLIC ${COMPILER_FLAGS})
+target_link_options(gl_again PUBLIC ${LINKER_FLAGS})
 target_link_libraries(gl_again glfw glad png_static ${GLFW_LIBRARIES})
 target_include_directories(gl_again PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(gl_again SYSTEM PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/deps/glfw/include)
