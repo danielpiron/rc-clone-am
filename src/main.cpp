@@ -175,6 +175,76 @@ std::vector<std::vector<TrackSegmentCoordinate>> translate_track_layout(const ch
     return result;
 }
 
+// Return a list of coordinates within the track_layout defining the path
+// through the track.
+std::vector<std::pair<size_t, size_t>>
+segment_order(const std::vector<std::vector<TrackSegmentCoordinate>>& track_layout)
+{
+    struct Offset {
+        enum class Direction : size_t { up, right, down, left };
+        int dRow;
+        int dCol;
+    };
+    size_t startingRow = 0;
+    size_t startingCol = 0;
+
+    // Find "Starting_Line" Extract function for this
+    // Also gotta make sure there's only ONE starting line.
+    for (; startingRow < track_layout.size(); ++startingRow) {
+        bool found = false;
+        for (startingCol = 0; startingCol < track_layout[startingRow].size(); ++startingCol) {
+            const auto& segment = track_layout[startingRow][startingCol];
+            if (segment.track_segment == "Starting_Line") {
+                found = true;
+                break;
+            }
+        }
+        if (found)
+            break;
+    }
+
+    static Offset offsets[] = {{-1, 0}, {0, 1}, {1, 0}, {0, -1}};
+    Offset::Direction current_direction = Offset::Direction::left;
+    std::vector<std::pair<size_t, size_t>> result{{startingRow, startingCol}};
+
+    int row = static_cast<int>(startingRow) + offsets[static_cast<size_t>(current_direction)].dRow;
+    int col = static_cast<int>(startingCol) + offsets[static_cast<size_t>(current_direction)].dCol;
+    while (!(row == static_cast<int>(startingRow) && col == static_cast<int>(startingCol))) {
+        result.push_back({row, col});
+        const auto& segment = track_layout[static_cast<size_t>(row)][static_cast<size_t>(col)];
+        // Turn on curves
+        if (segment.track_segment == "Top_Left") {
+            if (current_direction == Offset::Direction::up) {
+                current_direction = Offset::Direction::right;
+            } else if (current_direction == Offset::Direction::left) {
+                current_direction = Offset::Direction::down;
+            }
+        } else if (segment.track_segment == "Top_Right") {
+            if (current_direction == Offset::Direction::right) {
+                current_direction = Offset::Direction::down;
+            } else if (current_direction == Offset::Direction::up) {
+                current_direction = Offset::Direction::left;
+            }
+        } else if (segment.track_segment == "Bottom_Right") {
+            if (current_direction == Offset::Direction::down) {
+                current_direction = Offset::Direction::left;
+            } else if (current_direction == Offset::Direction::right) {
+                current_direction = Offset::Direction::up;
+            }
+        } else if (segment.track_segment == "Bottom_Left") {
+            if (current_direction == Offset::Direction::left) {
+                current_direction = Offset::Direction::up;
+            } else if (current_direction == Offset::Direction::down) {
+                current_direction = Offset::Direction::right;
+            }
+        }
+        row += offsets[static_cast<size_t>(current_direction)].dRow;
+        col += offsets[static_cast<size_t>(current_direction)].dCol;
+    }
+
+    return result;
+}
+
 glm::vec2 locate_start_position(const char* track_layout)
 {
     glm::vec2 result{0};
@@ -350,6 +420,9 @@ const char* track_layout = {"   r;\n"
     constexpr auto min_distance = 40.f;
     std::vector<Entity> entities(tree_count + 1);
     Entity& truck = entities[0];
+
+    segment_order(track_segment_offsets);
+
     truck.position = locate_start_position(track_layout);
     truck.angle = static_cast<float>(M_PI) / 2.0f;
 
