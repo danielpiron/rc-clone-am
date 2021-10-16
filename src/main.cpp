@@ -293,10 +293,10 @@ const char* track_layout = {"   r;\n"
                                 "l-s----j\n"};
                                 */
 
-    const char* track_layout = {"    r;\n"
-                                "r---j|\n"
-                                "l-;  |\n"
-                                "  l-sj\n"};
+    const char* track_layout = {"   r;\n"
+                                "r-;||\n"
+                                "| lj|\n"
+                                "l-s-j\n"};
 
     glfwSetErrorCallback(error_callback);
 
