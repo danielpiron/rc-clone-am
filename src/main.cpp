@@ -264,18 +264,17 @@ glm::vec2 locate_start_position(const char* track_layout)
     return result;
 }
 
-TrackSegmentCoordinate
-get_entity_track_segment(const Entity& entity,
-                         const std::vector<std::vector<TrackSegmentCoordinate>>& track_offsets)
+std::pair<size_t, size_t> get_entity_track_segment_coordinate(
+    const Entity& entity, const std::vector<std::vector<TrackSegmentCoordinate>>& track_offsets)
 {
     int x = static_cast<int>(entity.position.x + 30) / 60;
     int y = static_cast<int>(entity.position.y + 30) / 60;
 
     if (x < 0 || x < 0 || static_cast<size_t>(y) >= track_offsets.size() ||
         static_cast<size_t>(x) >= track_offsets[0].size())
-        return TrackSegmentCoordinate();
+        return {std::numeric_limits<size_t>::max(), std::numeric_limits<size_t>::max()};
 
-    return track_offsets.at(static_cast<size_t>(y)).at(static_cast<size_t>(x));
+    return {static_cast<size_t>(y), static_cast<size_t>(x)};
 }
 
 void place_track_segment_with_offset_and_scale(const std::vector<Vertex>& src,
@@ -421,9 +420,12 @@ const char* track_layout = {"   r;\n"
     std::vector<Entity> entities(tree_count + 1);
     Entity& truck = entities[0];
 
-    segment_order(track_segment_offsets);
+    size_t race_progress = 0;
+    const auto track_order = segment_order(track_segment_offsets);
+    const auto& starting_line =
+        track_segment_offsets[track_order[race_progress].first][track_order[race_progress].second];
 
-    truck.position = locate_start_position(track_layout);
+    truck.position = {starting_line.offset.x, starting_line.offset.z};
     truck.angle = static_cast<float>(M_PI) / 2.0f;
 
     TruckState truck_state;
@@ -567,14 +569,22 @@ const char* track_layout = {"   r;\n"
         truck_state.velocity += truck_state.velocity * -truck_state.friction;
         truck.position += truck_state.velocity;
 
-        const auto track_offset = get_entity_track_segment(truck, track_segment_offsets);
+        const auto track_offset_coordinate =
+            get_entity_track_segment_coordinate(truck, track_segment_offsets);
+        const auto& track_offset =
+            track_segment_offsets[track_offset_coordinate.first][track_offset_coordinate.second];
+
+        const auto next_segment_index = (race_progress + 1) % track_order.size();
+        if (track_offset_coordinate == track_order[next_segment_index]) {
+            // When we reach the next segment, we can advance the race_progress
+            race_progress++;
+            std::cout << "Race Progress: " << race_progress << "\n";
+            std::cout << "Lap: " << ((race_progress - 1) / track_order.size() + 1) << std::endl;
+            std::cout << std::endl;
+        }
 
         if (track_offset.track_segment != current_segment) {
             current_segment = track_offset.track_segment;
-            std::cout << "Current segment " << current_segment << std::endl;
-            std::cout << "Segment X:" << track_offset.offset.x << std::endl;
-            std::cout << "Segment Y:" << track_offset.offset.z << std::endl;
-            std::cout << "Truck Position:  " << glm::to_string(truck.position) << std::endl;
         }
 
         constexpr auto track_width = 18.0f;
