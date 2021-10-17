@@ -25,8 +25,7 @@ set(CLANG_WARNINGS
 if(MSVC)
     set(COMPILER_FLAGS /W4)
 else()
-    set(COMPILER_FLAGS ${CLANG_WARNINGS} -fsanitize=address -g -Werror)
-    set(LINKER_FLAGS --fsanitize=address)
+    set(COMPILER_FLAGS ${CLANG_WARNINGS} -g -Werror)
 endif()
 
 
@@ -38,9 +37,9 @@ enable_testing()
 
 add_subdirectory(deps/glfw)
 add_subdirectory(deps/glad)
-add_subdirectory(deps/zlib)
 
 if(MSVC)
+    add_subdirectory(deps/zlib)
     set(PNG_BUILD_ZLIB ON)
     set(ZLIB_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/deps/zlib ${PROJECT_BINARY_DIR}/deps/zlib)
     set(ZLIB_LIBRARIES ${PROJECT_BINARY_DIR}/deps/zlib/Debug/zlibstaticd.lib)
