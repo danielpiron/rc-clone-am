@@ -407,17 +407,17 @@ const char* track_layout = {"   r;\n"
      "|r-sj\n"
      "lj   \n"};
      */
-    /*
     const char* track_layout = {"r--;    \n"
                                 "l-;|  r;\n"
                                 "r-jl--j|\n"
                                 "l-s----j\n"};
-                                */
 
-    const char* track_layout = {"   r;\n"
-                                "r-;||\n"
-                                "| lj|\n"
-                                "l-s-j\n"};
+    /*
+        const char* track_layout = {"   r;\n"
+                                    "r-;||\n"
+                                    "| lj|\n"
+                                    "l-s-j\n"};
+                                    */
 
     glfwSetErrorCallback(error_callback);
 
@@ -470,17 +470,11 @@ const char* track_layout = {"   r;\n"
     std::vector<Entity> entities(1);
     entities.reserve(tree_count + 1);
 
-    Entity& truck = entities[0];
-
     size_t race_progress = 0;
     const auto track_order = segment_order(track_segment_offsets);
     const auto& starting_line =
         track_segment_offsets[track_order[race_progress].first][track_order[race_progress].second];
 
-    truck.position = {starting_line.offset.x, starting_line.offset.z};
-    truck.angle = static_cast<float>(M_PI) / 2.0f;
-
-    TruckState truck_state;
     {
         std::random_device rd;
         std::mt19937 mt(rd());
@@ -489,7 +483,7 @@ const char* track_layout = {"   r;\n"
 
         for (const auto& track_row : track_segment_offsets) {
             for (const auto& segment : track_row) {
-                for (size_t i = 0; i < 10; i++) {
+                for (size_t i = 0; i < 20; i++) {
                     const auto tree_x = segment.offset.x + distance_dist(mt);
                     const auto tree_y = segment.offset.z + distance_dist(mt);
                     if (is_on_track({tree_x, tree_y}, 22, track_segment_offsets))
@@ -499,6 +493,12 @@ const char* track_layout = {"   r;\n"
             }
         }
     }
+
+    Entity& truck = entities[0];
+    truck.position = {starting_line.offset.x, starting_line.offset.z};
+    truck.angle = static_cast<float>(M_PI) / 2.0f;
+
+    TruckState truck_state;
 
     GLuint vertex_buffer;
     glGenBuffers(1, &vertex_buffer);
