@@ -264,11 +264,12 @@ glm::vec2 locate_start_position(const char* track_layout)
     return result;
 }
 
-std::pair<size_t, size_t> get_entity_track_segment_coordinate(
-    const Entity& entity, const std::vector<std::vector<TrackSegmentCoordinate>>& track_offsets)
+std::pair<size_t, size_t>
+get_segment_coordinate(const glm::vec2& point,
+                       const std::vector<std::vector<TrackSegmentCoordinate>>& track_offsets)
 {
-    int x = static_cast<int>(entity.position.x + 30) / 60;
-    int y = static_cast<int>(entity.position.y + 30) / 60;
+    int x = static_cast<int>(point.x + 30) / 60;
+    int y = static_cast<int>(point.y + 30) / 60;
 
     if (x < 0 || x < 0 || static_cast<size_t>(y) >= track_offsets.size() ||
         static_cast<size_t>(x) >= track_offsets[0].size())
@@ -327,6 +328,31 @@ struct TruckState {
     float power = 0;
     float acceleration = 0.005f;
 };
+
+bool is_on_track(const glm::vec2& point, const int track_width,
+                 const std::vector<std::vector<TrackSegmentCoordinate>>& track_offsets)
+{
+
+    const auto segment_coordinates = get_segment_coordinate(point, track_offsets);
+    const auto& segment = track_offsets[segment_coordinates.first][segment_coordinates.second];
+    const auto half_track_width = track_width / 2;
+
+    if (segment.track_segment.empty()) {
+        return false;
+    }
+
+    if (segment.track_segment == "Vertical") {
+        return point.x >= (segment.offset.x - half_track_width) &&
+               point.x <= (segment.offset.x + half_track_width);
+    }
+
+    if (segment.track_segment == "Horizontal" || segment.track_segment == "Starting_Line") {
+        return point.y >= (segment.offset.z - half_track_width) &&
+               point.y <= (segment.offset.z + half_track_width);
+    }
+
+    return true;
+}
 
 void clamp_entity_to_curve(const glm::vec2& reference_point, Entity& entity)
 {
@@ -414,10 +440,11 @@ const char* track_layout = {"   r;\n"
     std::copy(tree_verts.begin(), tree_verts.end(), std::back_inserter(vertices));
     std::copy(track_verts.begin(), track_verts.end(), std::back_inserter(vertices));
 
-    constexpr auto tree_count = 40;
-    constexpr auto max_distance = 60.f;
-    constexpr auto min_distance = 40.f;
-    std::vector<Entity> entities(tree_count + 1);
+    constexpr auto tree_count = 200;
+
+    std::vector<Entity> entities(1);
+    entities.reserve(tree_count + 1);
+
     Entity& truck = entities[0];
 
     size_t race_progress = 0;
@@ -433,16 +460,18 @@ const char* track_layout = {"   r;\n"
         std::random_device rd;
         std::mt19937 mt(rd());
         std::uniform_real_distribution<float> radian_dist(0, static_cast<float>(M_PI) * 2.f);
-        std::uniform_real_distribution<float> distance_dist(0, max_distance - min_distance);
+        std::uniform_real_distribution<float> distance_dist(-30.0f, 30.0f);
 
-        for (auto& entity : entities) {
-            if (&entity == &truck)
-                continue;
-            auto distance = distance_dist(mt) + min_distance;
-            auto theta = radian_dist(mt);
-            entity.position.x = sinf(theta) * distance;
-            entity.position.y = cosf(theta) * distance;
-            entity.angle = theta;
+        for (const auto& track_row : track_segment_offsets) {
+            for (const auto& segment : track_row) {
+                for (size_t i = 0; i < 10; i++) {
+                    const auto tree_x = segment.offset.x + distance_dist(mt);
+                    const auto tree_y = segment.offset.z + distance_dist(mt);
+                    if (is_on_track({tree_x, tree_y}, 21, track_segment_offsets))
+                        continue;
+                    entities.push_back({{tree_x, tree_y}, radian_dist(mt)});
+                }
+            }
         }
     }
 
@@ -570,7 +599,7 @@ const char* track_layout = {"   r;\n"
         truck.position += truck_state.velocity;
 
         const auto track_offset_coordinate =
-            get_entity_track_segment_coordinate(truck, track_segment_offsets);
+            get_segment_coordinate(truck.position, track_segment_offsets);
         const auto& track_offset =
             track_segment_offsets[track_offset_coordinate.first][track_offset_coordinate.second];
 
