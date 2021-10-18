@@ -329,6 +329,16 @@ struct TruckState {
     float acceleration = 0.005f;
 };
 
+bool is_on_curve(const glm::vec2& point, const int track_width, const glm::vec2& reference_point)
+{
+    const auto half_track_width = track_width / 2.0f;
+    const auto corner_to_entity = point - reference_point;
+    const auto distance_to_reference = glm::length(corner_to_entity);
+
+    return distance_to_reference >= (30.0f - half_track_width) &&
+           distance_to_reference <= (30.0f + half_track_width);
+}
+
 bool is_on_track(const glm::vec2& point, const int track_width,
                  const std::vector<std::vector<TrackSegmentCoordinate>>& track_offsets)
 {
@@ -350,7 +360,22 @@ bool is_on_track(const glm::vec2& point, const int track_width,
         return point.y >= (segment.offset.z - half_track_width) &&
                point.y <= (segment.offset.z + half_track_width);
     }
-
+    if (segment.track_segment == "Top_Left") {
+        return is_on_curve(point, track_width,
+                           {segment.offset.x + 30.0f, segment.offset.z + 30.0f});
+    }
+    if (segment.track_segment == "Top_Right") {
+        return is_on_curve(point, track_width,
+                           {segment.offset.x - 30.0f, segment.offset.z + 30.0f});
+    }
+    if (segment.track_segment == "Bottom_Right") {
+        return is_on_curve(point, track_width,
+                           {segment.offset.x - 30.0f, segment.offset.z - 30.0f});
+    }
+    if (segment.track_segment == "Bottom_Left") {
+        return is_on_curve(point, track_width,
+                           {segment.offset.x + 30.0f, segment.offset.z - 30.0f});
+    }
     return true;
 }
 
@@ -467,7 +492,7 @@ const char* track_layout = {"   r;\n"
                 for (size_t i = 0; i < 10; i++) {
                     const auto tree_x = segment.offset.x + distance_dist(mt);
                     const auto tree_y = segment.offset.z + distance_dist(mt);
-                    if (is_on_track({tree_x, tree_y}, 21, track_segment_offsets))
+                    if (is_on_track({tree_x, tree_y}, 22, track_segment_offsets))
                         continue;
                     entities.push_back({{tree_x, tree_y}, radian_dist(mt)});
                 }
