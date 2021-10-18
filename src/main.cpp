@@ -551,57 +551,6 @@ const char* track_layout = {"   r;\n"
 
     std::string current_segment = "";
     while (!glfwWindowShouldClose(window)) {
-        int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
-        const float ratio = width / (float)height;
-
-        glViewport(0, 0, width, height);
-        glEnable(GL_DEPTH_TEST);
-
-        glClearColor(0.33f, 0.72f, 0.36f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        auto moving_target = truck.position + (truck_state.velocity * 12.0f);
-        auto vector_to_truck = (moving_target - camera_target);
-        float distance_to_camera_target = glm::length(vector_to_truck);
-        camera_velocity = vector_to_truck * .15f;
-        camera_target += camera_velocity;
-
-        glm::mat4 view{1.0f};
-        view = glm::translate(view, glm::vec3(0, 0, -(30.0f + distance_to_camera_target * 2.0f)));
-        view = glm::rotate(view, glm::radians(35.264f), glm::vec3(1.0f, 0, 0));
-        view = glm::rotate(view, glm::radians(-45.0f), glm::vec3(0, 1.0f, 0));
-        view = glm::translate(view, glm::vec3(-camera_target.x, 0, -camera_target.y));
-
-        glm::mat4 track_model = glm::mat4{1.0};
-        glm::mat4 projection = glm::perspective(glm::radians(35.f), ratio, 0.1f, 100.0f);
-
-        glm::mat4 track_mvp = projection * view;
-        glUseProgram(program);
-        glUniformMatrix4fv(mvp_location, 1, GL_FALSE, glm::value_ptr(track_mvp));
-        glUniformMatrix4fv(model_location, 1, GL_FALSE, glm::value_ptr(track_model));
-        glBindVertexArray(vertex_array);
-        glDrawArrays(GL_TRIANGLES, static_cast<int>(truck_verts.size() + tree_verts.size()),
-                     static_cast<int>(track_verts.size()));
-
-        for (const auto& entity : entities) {
-            glm::mat4 model = model_matrix_from_entity(entity);
-            glm::mat4 mvp = projection * view * model;
-
-            glUseProgram(program);
-            glUniformMatrix4fv(mvp_location, 1, GL_FALSE, glm::value_ptr(mvp));
-            glUniformMatrix4fv(model_location, 1, GL_FALSE, glm::value_ptr(model));
-            glBindVertexArray(vertex_array);
-
-            if (&entity == &truck) {
-                glDrawArrays(GL_TRIANGLES, 0, static_cast<int>(truck_verts.size()));
-            } else {
-                glDrawArrays(GL_TRIANGLES, static_cast<int>(truck_verts.size()),
-                             static_cast<int>(tree_verts.size()));
-            }
-        }
-
-        glfwSwapBuffers(window);
         glfwPollEvents();
 
         if (holding_left) {
@@ -664,6 +613,57 @@ const char* track_layout = {"   r;\n"
             clamp_entity_to_curve({track_offset.offset.x + 30.0f, track_offset.offset.z - 30.0f},
                                   truck);
         }
+
+        auto moving_target = truck.position + (truck_state.velocity * 12.0f);
+        auto vector_to_truck = (moving_target - camera_target);
+        float distance_to_camera_target = glm::length(vector_to_truck);
+        camera_velocity = vector_to_truck * .15f;
+        camera_target += camera_velocity;
+
+        int width, height;
+        glfwGetFramebufferSize(window, &width, &height);
+        const float ratio = width / (float)height;
+
+        glViewport(0, 0, width, height);
+        glEnable(GL_DEPTH_TEST);
+
+        glClearColor(0.33f, 0.72f, 0.36f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glm::mat4 view{1.0f};
+        view = glm::translate(view, glm::vec3(0, 0, -(30.0f + distance_to_camera_target * 2.0f)));
+        view = glm::rotate(view, glm::radians(35.264f), glm::vec3(1.0f, 0, 0));
+        view = glm::rotate(view, glm::radians(-45.0f), glm::vec3(0, 1.0f, 0));
+        view = glm::translate(view, glm::vec3(-camera_target.x, 0, -camera_target.y));
+
+        glm::mat4 track_model = glm::mat4{1.0};
+        glm::mat4 projection = glm::perspective(glm::radians(35.f), ratio, 0.1f, 100.0f);
+
+        glm::mat4 track_mvp = projection * view;
+        glUseProgram(program);
+        glUniformMatrix4fv(mvp_location, 1, GL_FALSE, glm::value_ptr(track_mvp));
+        glUniformMatrix4fv(model_location, 1, GL_FALSE, glm::value_ptr(track_model));
+        glBindVertexArray(vertex_array);
+        glDrawArrays(GL_TRIANGLES, static_cast<int>(truck_verts.size() + tree_verts.size()),
+                     static_cast<int>(track_verts.size()));
+
+        for (const auto& entity : entities) {
+            glm::mat4 model = model_matrix_from_entity(entity);
+            glm::mat4 mvp = projection * view * model;
+
+            glUseProgram(program);
+            glUniformMatrix4fv(mvp_location, 1, GL_FALSE, glm::value_ptr(mvp));
+            glUniformMatrix4fv(model_location, 1, GL_FALSE, glm::value_ptr(model));
+            glBindVertexArray(vertex_array);
+
+            if (&entity == &truck) {
+                glDrawArrays(GL_TRIANGLES, 0, static_cast<int>(truck_verts.size()));
+            } else {
+                glDrawArrays(GL_TRIANGLES, static_cast<int>(truck_verts.size()),
+                             static_cast<int>(tree_verts.size()));
+            }
+        }
+        glfwSwapBuffers(window);
     }
 
     glfwDestroyWindow(window);
