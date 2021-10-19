@@ -562,7 +562,7 @@ const char* track_layout = {"   r;\n"
         if (holding_accel) {
             truck_state.power += truck_state.acceleration;
         } else {
-            truck_state.power -= truck_state.acceleration;
+            truck_state.power -= truck_state.acceleration * 3.0f;
         }
 
         truck_state.power = std::clamp(truck_state.power, 0.0f, 1.0f);
