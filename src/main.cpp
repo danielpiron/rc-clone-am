@@ -465,31 +465,32 @@ const char* track_layout = {"   r;\n"
     std::copy(tree_verts.begin(), tree_verts.end(), std::back_inserter(vertices));
     std::copy(track_verts.begin(), track_verts.end(), std::back_inserter(vertices));
 
-    constexpr auto tree_count = 200;
-
-    std::vector<Entity> entities(1);
-    entities.reserve(tree_count + 1);
-
     size_t race_progress = 0;
     const auto track_order = segment_order(track_segment_offsets);
     const auto& starting_line =
         track_segment_offsets[track_order[race_progress].first][track_order[race_progress].second];
 
+    const auto tree_count = track_segment_offsets.size() * track_segment_offsets[0].size();
+    const auto trees_per_dimension = 4;
+    std::vector<Entity> entities(1);
+    entities.reserve(tree_count + 1);
     {
         std::random_device rd;
         std::mt19937 mt(rd());
         std::uniform_real_distribution<float> radian_dist(0, static_cast<float>(M_PI) * 2.f);
-        std::uniform_real_distribution<float> distance_dist(-30.0f, 30.0f);
+        std::uniform_real_distribution<float> distance_dist(-4.0f, 4.0f);
 
-        for (const auto& track_row : track_segment_offsets) {
-            for (const auto& segment : track_row) {
-                for (size_t i = 0; i < 20; i++) {
-                    const auto tree_x = segment.offset.x + distance_dist(mt);
-                    const auto tree_y = segment.offset.z + distance_dist(mt);
-                    if (is_on_track({tree_x, tree_y}, 22, track_segment_offsets))
-                        continue;
-                    entities.push_back({{tree_x, tree_y}, radian_dist(mt)});
-                }
+        for (size_t i = 0; i < track_segment_offsets.size() * trees_per_dimension; ++i) {
+            for (size_t j = 0; j < track_segment_offsets[0].size() * trees_per_dimension; ++j) {
+                const float x =
+                    static_cast<float>(j) * (60.0f / static_cast<float>(trees_per_dimension)) -
+                    30.0f + distance_dist(mt);
+                const float y =
+                    static_cast<float>(i) * (60.0f / static_cast<float>(trees_per_dimension)) -
+                    30.0f + distance_dist(mt);
+                if (is_on_track({x, y}, 22, track_segment_offsets))
+                    continue;
+                entities.push_back({{x, y}, radian_dist(mt)});
             }
         }
     }
