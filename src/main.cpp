@@ -478,7 +478,7 @@ const char* track_layout = {"   r;\n"
         std::random_device rd;
         std::mt19937 mt(rd());
         std::uniform_real_distribution<float> radian_dist(0, static_cast<float>(M_PI) * 2.f);
-        std::uniform_real_distribution<float> distance_dist(-4.0f, 4.0f);
+        std::uniform_real_distribution<float> distance_dist(-6.0f, 6.0f);
 
         for (size_t i = 0; i < track_segment_offsets.size() * trees_per_dimension; ++i) {
             for (size_t j = 0; j < track_segment_offsets[0].size() * trees_per_dimension; ++j) {
