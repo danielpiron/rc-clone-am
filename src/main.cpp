@@ -323,10 +323,10 @@ GLuint try_png(const char* filename)
 
 struct TruckState {
     glm::vec2 velocity{0};
-    float friction = 0.04f * 60.0f;
-    float max_power = 0.035f * 60.0f * 60.f;
+    float friction = 2.4f;
+    float max_power = 126.0f;
     float power = 0;
-    float acceleration = 0.005f * 60.0f;
+    float acceleration = 0.3f;
 };
 
 bool is_on_curve(const glm::vec2& point, const int track_width, const glm::vec2& reference_point)
@@ -407,17 +407,18 @@ const char* track_layout = {"   r;\n"
      "|r-sj\n"
      "lj   \n"};
      */
+    /*
     const char* track_layout = {"r--;    \n"
                                 "l-;|  r;\n"
                                 "r-jl--j|\n"
                                 "l-s----j\n"};
-
-    /*
+                                */
+    
         const char* track_layout = {"   r;\n"
                                     "r-;||\n"
                                     "| lj|\n"
                                     "l-s-j\n"};
-                                    */
+                                    
 
     glfwSetErrorCallback(error_callback);
 
@@ -561,9 +562,9 @@ const char* track_layout = {"   r;\n"
         glfwPollEvents();
 
         if (holding_left) {
-            truck.angle += 0.05f * 60.0f * delta_time;
+            truck.angle += 3.0f * delta_time;
         } else if (holding_right) {
-            truck.angle -= 0.05f * 60.0f * delta_time;
+            truck.angle -= 3.0f * delta_time;
         }
 
         if (holding_accel) {
@@ -622,10 +623,10 @@ const char* track_layout = {"   r;\n"
                                   truck);
         }
 
-        auto moving_target = truck.position + (truck_state.velocity * (12.0f / 60.0f));
+        auto moving_target = truck.position + (truck_state.velocity * 0.2f);
         auto vector_to_truck = (moving_target - camera_target);
         float distance_to_camera_target = glm::length(vector_to_truck);
-        camera_velocity = vector_to_truck * .15f * 60.0f;
+        camera_velocity = vector_to_truck * 9.0f;
         camera_target += camera_velocity * delta_time;
 
         int width, height;
